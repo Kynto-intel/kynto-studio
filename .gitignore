@@ -1,0 +1,33 @@
+# Schluessel. Darf NIE in ein Repository - deshalb ganz oben.
+# Vorlage ist .env.beispiel
+.env
+.env.*
+!.env.beispiel
+
+# Persoenliche Arbeitsanleitung: enthaelt Namen und absolute Pfade des
+# Autors. Bleibt lokal, der Inhalt steht nicht im Repository.
+CLI.md
+
+# Persoenliche Konfiguration - jeder legt seine eigene an,
+# Vorlage ist studio.config.beispiel.json
+studio.config.json
+
+# Laufzeitdaten der App: Verlauf mit allen Prompts, Verbrauch, eigener
+# Stil-Block. Wird beim ersten Start selbst angelegt.
+daten/
+
+# Windows-Verknuepfung, nur auf dem eigenen Rechner sinnvoll
+*.lnk
+
+# Betriebssystem
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editoren
+.vscode/
+.idea/
+
+# Falls jemand doch Pakete nachruestet
+node_modules/
+package-lock.json

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kynto Studio</title>
+  <link rel="icon" href="/icon.png" type="image/png">
+  <link rel="stylesheet" href="/studio.css">
+</head>
+<body>
+
+<!-- Liegt fest oben links. Bleibt beim Ein- und Ausklappen an derselben
+     Stelle, egal ob die Seitenleiste offen ist oder nicht. -->
+<button id="burger" class="burger" type="button" aria-expanded="true" aria-label="Menü ein- und ausklappen">
+  <span></span><span></span><span></span>
+</button>
+
+<aside class="seitenleiste" id="seitenleiste">
+  <div class="marke">
+    <strong>Kynto</strong>
+    <span>Studio</span>
+  </div>
+
+  <nav class="ordner" id="ordnerListe"></nav>
+
+  <button class="ordner-einstellen" id="ordnerKnopf" type="button">
+    Ordner einstellen
+  </button>
+
+  <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
+       Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
+       als Titel dran, statt Platz zu fressen. -->
+  <div class="fuss">
+    <div id="anbieterStand"></div>
+    <div id="verbrauch"></div>
+  </div>
+</aside>
+
+<main class="haupt">
+  <section class="raster-kopf">
+    <div class="kopf-links">
+      <h2 id="rasterTitel">Bestand</h2>
+      <!-- Erscheint erst, sobald im Bestand wirklich Videos liegen. -->
+      <div class="art-reiter" id="artReiter" hidden></div>
+    </div>
+    <div class="kopf-rechts">
+      <div class="suche">
+        <input id="sucheFeld" type="text" placeholder="Suchen: Name, Motiv, Prompt …"
+               autocomplete="off" spellcheck="false" aria-label="Bestand durchsuchen">
+        <button id="sucheWeg" class="suche-weg" type="button" hidden aria-label="Suche löschen">×</button>
+      </div>
+      <button id="verlaufKnopf" class="neben" type="button" aria-expanded="false">
+        <i class="punkt" id="verlaufPunkt"></i>Verlauf
+      </button>
+      <label class="haken">
+        <input id="nurFavoriten" type="checkbox">
+        <span>nur Favoriten</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="verlauf-feld" id="verlaufFeld" hidden>
+    <p class="verlauf-hinweis">
+      Alles, was im Studio passiert — auch was Claude über die Kommandozeile auslöst.
+      Erscheint live, ohne Neuladen.
+    </p>
+    <ul class="verlauf-liste" id="verlaufListe"></ul>
+  </section>
+
+  <section class="raster" id="raster"></section>
+</main>
+
+<!-- Eingabe wie ein Chatfeld: unten, alles eingeklappt. -->
+<footer class="leiste">
+  <div class="leiste-innen">
+
+    <div class="mehr" id="mehr" hidden>
+      <label>Dateiname
+        <input id="dateiname" type="text" placeholder="optional">
+      </label>
+      <label class="haken">
+        <input id="klein" type="checkbox">
+        <span>Klein (Entwurf, ~halbe Kosten)</span>
+      </label>
+      <label class="haken">
+        <input id="mitStil" type="checkbox" checked>
+        <span>Stil-Block</span>
+      </label>
+      <button id="stilKnopf" class="neben" type="button">Stil-Block</button>
+    </div>
+
+    <div class="stil-feld" id="stilFeld" hidden>
+      <label>Stil-Block — hängt automatisch an jedem Prompt
+        <textarea id="stilText" rows="8"></textarea>
+      </label>
+      <div class="stil-knoepfe">
+        <button id="stilSpeichern" class="fest" type="button">Speichern</button>
+        <button id="stilZuruecksetzen" class="neben" type="button">Auf Standard zurücksetzen</button>
+      </div>
+      <div class="stil-pfad" id="stilPfad"></div>
+    </div>
+
+    <div class="hinweis" id="hinweis" hidden></div>
+
+    <!-- Referenzbild: gesetzt heisst mit, leer heisst ohne. Kein Schalter. -->
+    <div class="referenz" id="referenz" hidden>
+      <img id="referenzBild" alt="">
+      <div class="referenz-text">
+        <strong>Referenzbild</strong>
+        <span id="referenzName"></span>
+      </div>
+      <button id="referenzWeg" class="neben" type="button">Entfernen</button>
+    </div>
+
+    <div class="komponist">
+      <button id="mehrKnopf" class="rund" type="button" title="Mehr Einstellungen">+</button>
+      <textarea id="motiv" rows="1" placeholder="Motiv beschreiben, englisch …"></textarea>
+      <button id="erzeugenKnopf" class="senden" type="button">Erzeugen</button>
+    </div>
+
+    <div class="komponist-fuss">
+      <div class="schaetzung" id="schaetzung"></div>
+      <div class="regler">
+        <div id="artWahl"></div>
+        <div id="modellWahl"></div>
+        <div id="formatWahl"></div>
+        <div id="anzahlWahl"></div>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<div class="ordner-dialog" id="ordner" hidden>
+  <div class="ord-inhalt">
+    <button class="schliessen" id="ordSchliessen" type="button">×</button>
+    <h3>Ordner einstellen</h3>
+
+    <label class="ord-feld">
+      <span>Hauptordner — alles darunter ist erreichbar, nichts darüber</span>
+      <input id="ordWurzel" type="text" spellcheck="false">
+    </label>
+
+    <div class="ord-kopfzeile">
+      <span>Name</span>
+      <span>Unterordner</span>
+      <span>speichern</span>
+      <span></span>
+    </div>
+    <div id="ordListe"></div>
+
+    <div class="ord-fuss">
+      <button id="ordNeu" class="neben" type="button">Ordner hinzufügen</button>
+      <span class="ord-hinweis" id="ordHinweis"></span>
+      <button id="ordSpeichern" class="fest" type="button">Speichern</button>
+    </div>
+
+    <p class="ord-erklaerung">
+      Fehlende Ordner werden beim ersten Speichern angelegt. Ordner aus der
+      Liste zu nehmen löscht keine Dateien — sie werden nur nicht mehr angezeigt.
+    </p>
+  </div>
+</div>
+
+<div class="texteditor" id="texteditor" hidden>
+  <div class="te-inhalt">
+    <button class="schliessen" id="teSchliessen" type="button">×</button>
+
+    <div class="te-bild">
+      <div class="te-buehne">
+        <canvas id="teVorschau"></canvas>
+        <i class="te-marke" id="teMarke" hidden></i>
+      </div>
+      <p class="te-tipp">
+        Ins Bild klicken oder ziehen, um den Text zu verschieben
+        <span id="teGenau" class="te-genau"></span>
+      </p>
+    </div>
+
+    <div class="te-seite">
+      <h3 id="teDatei"></h3>
+
+      <label class="te-feld">
+        <span>Spruch — <code>*Wort*</code> oder <code>"Wort"</code> setzt es in die Akzentfarbe</span>
+        <textarea id="teText" rows="4" placeholder="Sie sagten: stur. Ich korrigiere: Das nennt man *Haltung*"></textarea>
+      </label>
+
+      <div id="teBedienung"></div>
+
+      <div class="te-fuss">
+        <span id="teStatus"></span>
+        <button id="teSpeichern" class="senden" type="button">Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="detail" id="detail" hidden>
+  <div class="detail-inhalt">
+    <button class="schliessen" id="detailSchliessen" type="button">×</button>
+    <div class="detail-bild" id="detailBild"></div>
+    <div class="detail-daten" id="detailDaten"></div>
+  </div>
+</div>
+
+<script type="module" src="/studio.js"></script>
+</body>
+</html>

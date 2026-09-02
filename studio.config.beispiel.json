@@ -1,0 +1,23 @@
+{
+  "_hinweis": "Kopiere diese Datei nach studio.config.json und passe sie an. Die Ordner unten sind nur ein Vorschlag - loesche, was du nicht brauchst. Ohne die Datei startet das Studio ganz ohne Ordner und legt von sich aus keinen einzigen an; du richtest sie dann in der App unter "Ordner einstellen" ein.",
+
+  "wurzel": "C:\\Pfad\\zu\\deinen\\Bildern",
+  "port": 4890,
+  "host": "127.0.0.1",
+
+  "ordner": [
+    { "id": "feed", "label": "Feed", "hinweis": "Studio-Ausgabe", "schreibbar": true, "unterordner": "Feed" },
+    { "id": "pinterest", "label": "Pinterest", "hinweis": "Studio-Ausgabe", "schreibbar": true, "unterordner": "Pinterest" },
+    { "id": "blog", "label": "Blog", "hinweis": "Studio-Ausgabe", "schreibbar": true, "unterordner": "Blog" },
+    { "id": "assets", "label": "Eigene Dateien", "hinweis": "schreibt das Studio nie", "schreibbar": false, "unterordner": "Assets" }
+  ],
+
+  "_formate": "Optional. genW/genH ist was das Modell rendert, zielW/zielH das Endmass. ordner verweist auf eine id aus der Liste oben.",
+  "formate": {
+    "feed":   { "label": "Feed 4:5",      "genW": 1024, "genH": 1280, "zielW": 1080, "zielH": 1350, "ordner": "feed",      "suffix": "1080x1350" },
+    "story":  { "label": "Story 9:16",    "genW": 1080, "genH": 1920, "zielW": 1080, "zielH": 1920, "ordner": "feed",      "suffix": "1080x1920" },
+    "square": { "label": "Quadrat 1:1",   "genW": 1024, "genH": 1024, "zielW": 1080, "zielH": 1080, "ordner": "feed",      "suffix": "1080x1080" },
+    "pin":    { "label": "Pinterest 2:3", "genW": 1024, "genH": 1536, "zielW": 1000, "zielH": 1500, "ordner": "pinterest", "suffix": "1000x1500" },
+    "roh":    { "label": "Roh (unbeschnitten)", "genW": 1024, "genH": 1024, "zielW": 0, "zielH": 0, "ordner": "feed", "suffix": "roh" }
+  }
+}
