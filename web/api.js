@@ -38,6 +38,7 @@ export const api = {
   standardSpeichern: (koerper) => ruf('/api/standard', { method: 'POST', body: JSON.stringify(koerper) }),
   chatModelle: () => ruf('/api/chat-modelle'),
   chatLeeren: () => ruf('/api/chat-leeren', { method: 'POST' }),
+  eintrag: (pfad) => ruf('/api/eintrag?pfad=' + encodeURIComponent(pfad)),
   konfig: () => ruf('/api/konfig'),
   konfigSpeichern: (koerper) => ruf('/api/konfig', { method: 'POST', body: JSON.stringify(koerper) }),
   modelleAktualisieren: (art) => ruf('/api/modelle-aktualisieren', { method: 'POST', body: JSON.stringify({ art }) }),

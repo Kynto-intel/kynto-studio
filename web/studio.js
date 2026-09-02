@@ -286,6 +286,19 @@ async function los() {
   // Eine Live-Verbindung, zwei Abnehmer: die Galerie laedt nach, das
   // Verlaufsfenster zeichnet nach.
   verlaufFenster.verdrahte();
+
+  // Klick auf eine Miniatur im Verlauf oeffnet dieselbe Detailansicht wie
+  // ein Klick in der Galerie. Der Verlauf kennt nur den Pfad, alles Weitere
+  // - Sidecar, Ordner, Art - holt der Server dazu.
+  verlaufFenster.setzeOeffnenZiel(async (pfad) => {
+    try {
+      const { eintrag } = await api.eintrag(pfad);
+      verlaufFenster.schliesseFenster();
+      detail.zeige(eintrag);
+    } catch (fehler) {
+      window.alert(fehler.message);
+    }
+  });
   verlauf.setzeNachladeZiel(raster.lade);
   verlauf.setzeEreignisZiel(verlaufFenster.ergaenze);
   verlauf.verbinde();

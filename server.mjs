@@ -424,7 +424,19 @@ const routen = {
     if (!fs.existsSync(quelle)) throw new Error('Bild nicht gefunden.');
 
     const bytes = await textebene.rendere({ quellDatei: quelle, ebenen });
-    const ziel = textebene.freierName(quelle);
+
+    // Das Ergebnis landet normalerweise neben dem Original. Liegt das
+    // Original aber in einem Ordner, der auf "nur anzeigen" steht, waere
+    // das ein Verstoss gegen genau die Einstellung - dann geht es in den
+    // Zielordner des aktuellen Formats, wie ein erzeugtes Bild auch.
+    const quellOrdner = konfig.ORDNER.find((o) => quelle.startsWith(o.pfad + path.sep));
+    let zielOrdner = null;
+    if (quellOrdner && !quellOrdner.schreibbar) {
+      const m = format.masse(konfig.STANDARD.formatId, false);
+      zielOrdner = stelleOrdnerSicher(ordnerNach(m.ordner).pfad);
+    }
+
+    const ziel = textebene.freierName(quelle, zielOrdner);
     fs.writeFileSync(ziel, bytes);
 
     const elternMeta = sidecar.lies(quelle);
@@ -496,10 +508,33 @@ const routen = {
    */
   'GET /api/verlauf': async (_req, url) => {
     const anzahl = Math.min(Math.max(1, Number(url.searchParams.get('anzahl')) || 500), 2000);
-    return {
-      eintraege: verlauf.letzte(anzahl),
-      chat: chatverlauf.lies(),
-    };
+
+    // Welche Dateien es noch gibt, weiss nur der Server. Ohne diese
+    // Markierung muesste der Browser jede Miniatur laden, um zu merken,
+    // dass sie fehlt - und der Verlauf reicht weiter zurueck als der
+    // Bestand, geloescht wird ausserhalb der App.
+    const eintraege = verlauf.letzte(anzahl).map((e) => {
+      const dateien = e.details?.dateien;
+      if (!dateien?.length) return e;
+      const da = dateien.filter((p) => {
+        try {
+          return fs.existsSync(absolut(p));
+        } catch {
+          return false;
+        }
+      });
+      return { ...e, details: { ...e.details, dateienDa: da } };
+    });
+
+    return { eintraege, chat: chatverlauf.lies() };
+  },
+
+  /** Ein einzelner Bestandseintrag - fuer die Detailansicht aus dem Verlauf. */
+  'GET /api/eintrag': async (_req, url) => {
+    const roh = url.searchParams.get('pfad') || '';
+    const e = bibliothek.einzeln(absolut(roh));
+    if (!e) throw new Error('Datei nicht mehr vorhanden.');
+    return { eintrag: e };
   },
 
   'GET /api/chat-modelle': async () => ({ modelle: await chat.modelle() }),

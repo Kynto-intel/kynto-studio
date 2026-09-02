@@ -9,6 +9,8 @@
 // Verbindung fuer die ganze App, nicht eine je Ansicht. Dieses Modul
 // bekommt neue Eintraege gemeldet und zeichnet nur nach.
 
+import { api } from './api.js';
+
 const el = (id) => document.getElementById(id);
 
 const BEREICHE = [
@@ -31,6 +33,10 @@ let eintraege = [];
 let gespraech = [];
 let aktiv = 'bilder';
 let geladen = false;
+let beiDateiKlick = () => {};
+
+/** Wohin ein Klick auf eine Miniatur fuehrt - die Detailansicht der App. */
+export function setzeOeffnenZiel(fn) { beiDateiKlick = fn; }
 
 function zeitpunkt(iso) {
   return new Date(iso).toLocaleString('de-DE', {
@@ -54,40 +60,60 @@ function faltung(titel, inhalt) {
   return d;
 }
 
-/** Miniaturen der erzeugten Dateien. */
-function dateiVorschau(dateien) {
+/**
+ * Miniaturen der erzeugten Dateien.
+ *
+ * `dateienDa` kommt vom Server und sagt, welche Dateien es noch gibt -
+ * der Verlauf reicht weiter zurueck als der Bestand, und geloescht wird
+ * ausserhalb der App. Fehlende erscheinen als Hinweis statt als kaputtes
+ * Bildsymbol; nur vorhandene lassen sich anklicken.
+ */
+function dateiVorschau(d) {
+  const alle = d.dateien || [];
+  const da = new Set(d.dateienDa || []);
+
   const box = document.createElement('div');
   box.className = 'vs-dateien';
-  for (const pfad of dateien) {
-    const adresse = `/datei?pfad=${encodeURIComponent(pfad)}`;
-    const a = document.createElement('a');
-    a.href = adresse;
-    a.target = '_blank';
-    a.title = pfad;
 
-    // Der Verlauf reicht weiter zurueck als der Bestand: geloeschte oder
-    // verschobene Dateien haetten sonst ein kaputtes Bildsymbol samt
-    // ausgeschriebenem Pfad hinterlassen. Faellt das Laden aus, verschwindet
-    // die Kachel einfach.
-    const weg = () => a.remove();
+  for (const pfad of alle) {
+    if (!da.has(pfad)) continue;
+
+    const kachel = document.createElement('button');
+    kachel.type = 'button';
+    kachel.className = 'vs-kachel';
+    kachel.title = `${pfad} — klicken zum Öffnen`;
 
     if (/\.(mp4|webm|mov)$/i.test(pfad)) {
-      const v = document.createElement('video');
-      v.src = adresse;
-      v.muted = true;
-      v.preload = 'metadata';
-      v.addEventListener('error', weg);
-      a.append(v);
+      const video = document.createElement('video');
+      video.src = `/datei?pfad=${encodeURIComponent(pfad)}`;
+      video.muted = true;
+      video.preload = 'metadata';
+      kachel.append(video);
+      const marke = document.createElement('span');
+      marke.className = 'vs-abspiel';
+      kachel.append(marke);
     } else {
-      const i = document.createElement('img');
-      i.src = adresse;
-      i.loading = 'lazy';
-      i.alt = '';
-      i.addEventListener('error', weg);
-      a.append(i);
+      const bild = document.createElement('img');
+      bild.src = `/datei?pfad=${encodeURIComponent(pfad)}`;
+      bild.loading = 'lazy';
+      bild.alt = '';
+      kachel.append(bild);
     }
-    box.append(a);
+
+    kachel.addEventListener('click', () => beiDateiKlick(pfad));
+    box.append(kachel);
   }
+
+  const fehlend = alle.length - da.size;
+  if (fehlend > 0) {
+    const hinweis = document.createElement('span');
+    hinweis.className = 'vs-fehlt';
+    hinweis.textContent = alle.length === fehlend
+      ? `${fehlend} Datei(en) nicht mehr vorhanden`
+      : `+ ${fehlend} nicht mehr vorhanden`;
+    box.append(hinweis);
+  }
+
   return box;
 }
 
@@ -125,7 +151,7 @@ function verlaufZeile(e) {
   li.append(kopf, text);
 
   const d = e.details || {};
-  if (d.dateien?.length) li.append(dateiVorschau(d.dateien));
+  if (d.dateien?.length) li.append(dateiVorschau(d));
   if (d.prompt) li.append(faltung('Vollständiger Prompt', d.prompt));
 
   const zusatz = [];
@@ -294,6 +320,9 @@ export async function oeffne() {
 function schliesse() {
   el('verlaufFenster').hidden = true;
 }
+
+/** Von aussen schliessen - wenn die Detailansicht uebernimmt. */
+export function schliesseFenster() { schliesse(); }
 
 export function verdrahte() {
   aktiv = localStorage.getItem('kynto-verlauf-bereich') || 'bilder';

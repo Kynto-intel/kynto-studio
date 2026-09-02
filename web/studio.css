@@ -655,9 +655,52 @@ body.zu .verlauf-knopf span { display: none; }
 
 /* Miniaturen der erzeugten Dateien - man erkennt einen Lauf am Bild
    schneller wieder als am Prompt. */
-.vs-dateien { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.vs-dateien a { display: block; width: 74px; height: 74px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border); }
-.vs-dateien img, .vs-dateien video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vs-dateien { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+
+/* Anklickbar, weil ein Klick die Detailansicht oeffnet. Nur Dateien, die
+   es noch gibt, kommen ueberhaupt als Kachel her. */
+.vs-kachel {
+  position: relative;
+  display: block;
+  width: 74px;
+  height: 74px;
+  padding: 0;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  cursor: pointer;
+}
+.vs-kachel:hover { border-color: var(--accent); }
+.vs-kachel img, .vs-kachel video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Abspielsymbol, damit ein Standbild nicht wie ein Foto aussieht. */
+.vs-abspiel {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  border: 1px solid rgba(255, 255, 255, .5);
+}
+.vs-abspiel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border-left: 7px solid #fff;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  transform: translateX(1px);
+}
+
+/* Was nicht mehr da ist, wird gesagt statt verschwiegen - sonst wundert
+   man sich, warum bei einem Lauf kein Bild steht. */
+.vs-fehlt { font-size: 11px; color: var(--subtext); font-style: italic; }
 
 .vs-zeile details { margin-top: 7px; }
 .vs-zeile summary { font-size: 11px; color: var(--subtext); cursor: pointer; }
