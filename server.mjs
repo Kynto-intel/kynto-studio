@@ -12,6 +12,7 @@ import {
 } from './lib/pfade.mjs';
 import * as bibliothek from './lib/bibliothek.mjs';
 import * as chat from './lib/anbieter-openrouter-chat.mjs';
+import * as chatverlauf from './lib/chatverlauf.mjs';
 import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
@@ -136,6 +137,10 @@ async function fuehreGespraech(req, res) {
     sende(res, { typ: 'fehler', text: 'Keine Nachricht angegeben.' });
     return res.end();
   }
+  if (!modell) {
+    sende(res, { typ: 'fehler', text: 'Kein Chat-Modell eingestellt.' });
+    return res.end();
+  }
 
   const mitSystem = [{ role: 'system', content: systemHinweis() }, ...nachrichten];
   let dollarGesamt = 0;
@@ -200,9 +205,13 @@ async function fuehreGespraech(req, res) {
     sende(res, { typ: 'fehler', text: fehler.message });
   }
 
+  // Erst speichern, dann melden: was der Browser bekommt, ist genau das,
+  // was auf der Platte steht - inklusive Kuerzung und Heilung.
+  const gespeichert = chatverlauf.schreibe(nachrichten);
+
   sende(res, {
     typ: 'fertig',
-    nachrichten,
+    nachrichten: gespeichert,
     dollar: Number(dollarGesamt.toFixed(6)),
     verbrauch: kosten.stand(),
   });
@@ -226,6 +235,7 @@ const routen = {
     anbieter: anbieterBereit(),
     schluessel: schluesselStand(),
     standard: { ...konfig.STANDARD },
+    chatVerlauf: chatverlauf.lies(),
     stil: stil.ladeStil(),
     standardStil: stil.STANDARD_STIL,
     stilDatei: stil.STIL_DATEI,
@@ -468,6 +478,14 @@ const routen = {
    * Wird bei jeder Aenderung gerufen, damit Kommandozeile, Chat und ein
    * Agent von aussen dieselbe Wahl sehen wie das Browserfenster.
    */
+  /**
+   * Textmodelle, die Werkzeuge beherrschen. Wird erst geholt, wenn der Chat
+   * das erste Mal aufgeht - die Liste ist gross und beim Start nicht noetig.
+   */
+  'GET /api/chat-modelle': async () => ({ modelle: await chat.modelle() }),
+
+  'POST /api/chat-leeren': async () => ({ nachrichten: chatverlauf.leere() }),
+
   'POST /api/standard': async (req) => {
     const koerper = await koerperLesen(req);
     return { standard: speichereStandard(koerper) };

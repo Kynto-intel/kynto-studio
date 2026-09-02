@@ -10,18 +10,27 @@
 // Es gibt keinen zweiten Weg zum Erzeugen und damit keine Luecke.
 
 import { api } from './api.js';
+import { baueAuswahl } from './auswahl.js';
 
 const el = (id) => document.getElementById(id);
 
 /** Der Gespraechsverlauf im Format, das OpenRouter erwartet. */
 let nachrichten = [];
 let laeuft = false;
+let chatModell = null;
+let modelleGeladen = false;
 let beiErzeugt = () => {};
 let verbrauchZeigen = () => {};
 
 export function setzeCallbacks({ fertig, verbrauch }) {
   beiErzeugt = fertig || beiErzeugt;
   verbrauchZeigen = verbrauch || verbrauchZeigen;
+}
+
+/** Startzustand vom Server: gespeichertes Gespraech und eingestelltes Modell. */
+export function setzeDaten({ chatVerlauf = [], standard = {} }) {
+  nachrichten = Array.isArray(chatVerlauf) ? chatVerlauf : [];
+  chatModell = standard.chatModell || null;
 }
 
 function geld(betrag) {
@@ -279,9 +288,10 @@ export function verdrahte() {
     feld.style.height = `${Math.min(feld.scrollHeight, 140)}px`;
   });
 
-  el('chatLeeren').addEventListener('click', () => {
+  el('chatLeeren').addEventListener('click', async () => {
     nachrichten = [];
     el('chatVerlauf').replaceChildren();
+    await api.chatLeeren().catch(() => {});
     begruessung();
   });
 
@@ -289,7 +299,7 @@ export function verdrahte() {
     document.body.classList.toggle('chat-offen', zeigen);
     el('chatKnopf').setAttribute('aria-expanded', String(zeigen));
     localStorage.setItem('kynto-chat-offen', zeigen ? '1' : '0');
-    if (zeigen) feld.focus();
+    if (zeigen) { ladeModelle(); feld.focus(); }
   };
   el('chatKnopf').addEventListener('click', () => {
     auf(!document.body.classList.contains('chat-offen'));
@@ -297,7 +307,71 @@ export function verdrahte() {
   el('chatZu').addEventListener('click', () => auf(false));
   auf(localStorage.getItem('kynto-chat-offen') === '1');
 
-  begruessung();
+  if (nachrichten.length) zeichneVerlauf();
+  else begruessung();
+}
+
+/**
+ * Zeichnet ein gespeichertes Gespraech nach.
+ *
+ * Werkzeug-Zeilen kommen aus den tool-Antworten, nicht aus den Aufrufen -
+ * nur dort steht, was dabei herauskam. Offene Vorschlaege hat der Server
+ * schon weggeschnitten, hier kann also nichts halb Fertiges auftauchen.
+ */
+function zeichneVerlauf() {
+  const namen = new Map();
+  for (const n of nachrichten) {
+    for (const a of n.tool_calls || []) namen.set(a.id, a.function?.name);
+  }
+
+  const notiz = (text) => {
+    const z = document.createElement("div");
+    z.className = "chat-werkzeug";
+    z.textContent = text;
+    el("chatVerlauf").append(z);
+  };
+
+  for (const n of nachrichten) {
+    if (n.role === "user" && n.content) blase("ich", n.content);
+    else if (n.role === "assistant" && n.content) blase("ki", n.content);
+    else if (n.role === "tool") {
+      let ergebnis = {};
+      try { ergebnis = JSON.parse(n.content); } catch { /* egal */ }
+      if (ergebnis.erzeugt) notiz(ergebnis.erzeugt.length + " Datei(en) erzeugt");
+      else if (ergebnis.abgelehnt) notiz("Vorschlag verworfen");
+      else werkzeugZeile(namen.get(n.tool_call_id) || "werkzeug", ergebnis);
+    }
+  }
+  scrolleAnsEnde();
+}
+
+/**
+ * Die Modell-Liste holen - erst beim ersten Oeffnen.
+ *
+ * Es sind ueber 350 Modelle; die beim Start mitzuladen wuerde das Oeffnen
+ * der App verzoegern fuer etwas, das viele nie anfassen.
+ */
+async function ladeModelle() {
+  if (modelleGeladen) return;
+  modelleGeladen = true;
+  try {
+    const { modelle } = await api.chatModelle();
+    if (!modelle.length) return;
+    baueAuswahl(el("chatModellWahl"), {
+      wert: modelle.some((m) => m.id === chatModell) ? chatModell : modelle[0].id,
+      eintraege: modelle.map((m) => ({
+        wert: m.id, text: m.name, notiz: m.notiz, gruppe: m.gruppe,
+      })),
+      beiWahl: (neu) => {
+        chatModell = neu;
+        api.standardSpeichern({ chatModell: neu }).catch(() => {});
+      },
+    });
+  } catch (fehler) {
+    const z = document.createElement("div");
+    z.textContent = "Modell-Liste nicht erreichbar: " + fehler.message;
+    el("chatModellWahl").append(z);
+  }
 }
 
 function begruessung() {

@@ -50,6 +50,14 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   prompt, model and caption. As soon as the library holds a video, a
   Videos tab appears next to the title; if you only make images, it never
   shows up.
+- **A built-in assistant** — a chat sidebar that drives the studio: it
+  searches your library, reads your style block, burns text onto images.
+  When it wants to generate something it **proposes**, showing subject,
+  format and price — you click. Paid tools have no execute path on the
+  server at all, so a chatty model cannot spend your money. It never picks
+  a model either: what you set in the app is what renders. Any of
+  OpenRouter's ~360 tool-capable text models can run it; a turn costs about
+  a third of a cent, and the conversation is kept in `daten/chat.json`.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.

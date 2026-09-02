@@ -264,6 +264,7 @@ async function los() {
     raster.setzeFavoritenFilter(e.target.checked);
   });
 
+  chat.setzeDaten(start);
   chat.setzeCallbacks({ fertig: raster.lade, verbrauch: zeigeVerbrauch });
   chat.verdrahte();
 

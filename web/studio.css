@@ -473,6 +473,20 @@ body.chat-offen .leiste { right: 362px; }
 }
 .chat-klein:hover { background: var(--muted); color: var(--text); }
 
+/* Modellzeile: schmal, damit sie nicht mit dem Gespraech konkurriert. */
+.chat-modell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--subtext);
+}
+.chat-modell > span { flex: 0 0 auto; }
+.chat-modell > div { flex: 1; min-width: 0; }
+.chat-modell .auswahl-knopf { font-size: 11px; padding: 5px 8px; }
+
 .chat-verlauf {
   flex: 1;
   overflow-y: auto;
