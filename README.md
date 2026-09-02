@@ -74,7 +74,7 @@ No npm packages. Nothing to install. Clone and run.
 ## Setup
 
 ```bash
-git clone https://github.com/Kynto-Intel/kynto-studio.git
+git clone https://github.com/Kynto-intel/kynto-studio.git
 cd kynto-studio
 copy studio.config.beispiel.json studio.config.json
 ```
