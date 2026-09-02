@@ -138,14 +138,25 @@ function zeigeVerbrauch(v) {
     v.clips ? `${v.clips} Clip(s)` : null,
   ].filter(Boolean).join(', ');
 
-  ziel.append(
-    fussZeile(stueck ? `Heute · ${stueck}` : 'Heute', geld(v.dollar), {
-      titel: 'Was OpenRouter heute tatsächlich abgerechnet hat',
-    }),
-    fussZeile('Insgesamt', geld(v.gesamtDollar), {
-      titel: 'Alles, was je über dieses Werkzeug gelaufen ist',
-    }),
-  );
+  ziel.append(fussZeile(stueck ? `Heute · ${stueck}` : 'Heute', geld(v.dollar), {
+    titel: 'Was OpenRouter heute tatsächlich abgerechnet hat — Bilder, Clips und Chat zusammen',
+  }));
+
+  // Die Chat-Zeile erscheint nur, wenn heute wirklich geredet wurde. Sonst
+  // stuende dauerhaft eine Null im Fuss, und drei Zeilen sollen es bleiben.
+  // Getrennt, weil die Groessenordnungen weit auseinanderliegen: ein Bild
+  // kostet so viel wie hundert Gespraechszuege.
+  if (v.chatDollar) {
+    ziel.append(fussZeile('davon Chat', geld(v.chatDollar), {
+      titel: 'Textmarken des Assistenten. Der Rest ging aufs Erzeugen.',
+    }));
+  }
+
+  ziel.append(fussZeile('Insgesamt', geld(v.gesamtDollar), {
+    titel: v.gesamtChatDollar
+      ? `Alles, was je über dieses Werkzeug gelaufen ist — davon ${geld(v.gesamtChatDollar)} Chat`
+      : 'Alles, was je über dieses Werkzeug gelaufen ist',
+  }));
 }
 
 function verdrahteStil(startStil, standardStil, stilDatei) {

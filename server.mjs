@@ -155,7 +155,7 @@ async function fuehreGespraech(req, res) {
 
       if (preis) {
         dollarGesamt += preis;
-        kosten.buche({ dollar: preis, modell });
+        kosten.buche({ dollar: preis, modell, chat: true });
       }
       mitSystem.push(nachricht);
       nachrichten.push(nachricht);
