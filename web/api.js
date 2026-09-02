@@ -36,7 +36,7 @@ export const api = {
   textAnwenden: (pfad, ebenen) => ruf('/api/text-anwenden', { method: 'POST', body: JSON.stringify({ pfad, ebenen }) }),
   stilSpeichern: (text) => ruf('/api/stil', { method: 'POST', body: JSON.stringify({ text }) }),
   standardSpeichern: (koerper) => ruf('/api/standard', { method: 'POST', body: JSON.stringify(koerper) }),
-  chatModelle: () => ruf('/api/chat-modelle'),
+  chatModelle: (alle = false) => ruf(`/api/chat-modelle${alle ? '?alle=1' : ''}`),
   chatLeeren: () => ruf('/api/chat-leeren', { method: 'POST' }),
   eintrag: (pfad) => ruf('/api/eintrag?pfad=' + encodeURIComponent(pfad)),
   konfig: () => ruf('/api/konfig'),

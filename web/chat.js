@@ -19,6 +19,9 @@ let nachrichten = [];
 let laeuft = false;
 let chatModell = null;
 let modelleGeladen = false;
+
+/** Kein Modell, sondern der Eintrag "Alle Modelle zeigen". */
+const MEHR = '__alle__';
 let gespraechDollar = 0;
 let beiErzeugt = () => {};
 let verbrauchZeigen = () => {};
@@ -317,7 +320,11 @@ export function verdrahte() {
     document.body.classList.toggle('chat-offen', zeigen);
     el('chatKnopf').setAttribute('aria-expanded', String(zeigen));
     localStorage.setItem('kynto-chat-offen', zeigen ? '1' : '0');
-    if (zeigen) { ladeModelle(); feld.focus(); }
+    if (zeigen) {
+      // Erst beim Oeffnen holen, und nur einmal.
+      if (!modelleGeladen) { modelleGeladen = true; ladeModelle(); }
+      feld.focus();
+    }
   };
   el('chatKnopf').addEventListener('click', () => {
     auf(!document.body.classList.contains('chat-offen'));
@@ -369,20 +376,31 @@ function zeichneVerlauf() {
  * Es sind ueber 350 Modelle; die beim Start mitzuladen wuerde das Oeffnen
  * der App verzoegern fuer etwas, das viele nie anfassen.
  */
-async function ladeModelle() {
-  if (modelleGeladen) return;
-  modelleGeladen = true;
+async function ladeModelle(alle = false) {
   try {
-    const { modelle } = await api.chatModelle();
+    const { modelle, gesamt } = await api.chatModelle(alle);
     if (!modelle.length) return;
+
+    // Ein Eintrag am Ende oeffnet die vollstaendige Liste. Der Wert ist
+    // absichtlich keine Modell-Kennung - beiWahl faengt ihn ab.
+    const eintraege = modelle.map((m) => ({
+      wert: m.id, text: m.name, notiz: m.notiz, gruppe: alle ? m.gruppe : null,
+    }));
+    if (!alle) {
+      eintraege.push({
+        wert: MEHR,
+        text: "Alle Modelle zeigen",
+        notiz: gesamt + " insgesamt, nach Anbieter sortiert",
+      });
+    }
+
     baueAuswahl(el("chatModellWahl"), {
       wert: modelle.some((m) => m.id === chatModell) ? chatModell : modelle[0].id,
-      eintraege: modelle.map((m) => ({
-        wert: m.id, text: m.name, notiz: m.notiz, gruppe: m.gruppe,
-      })),
-      beiWahl: (neu) => {
-        chatModell = neu;
-        api.standardSpeichern({ chatModell: neu }).catch(() => {});
+      eintraege,
+      beiWahl: (neuerWert) => {
+        if (neuerWert === MEHR) { ladeModelle(true); return; }
+        chatModell = neuerWert;
+        api.standardSpeichern({ chatModell: neuerWert }).catch(() => {});
       },
     });
   } catch (fehler) {
@@ -391,7 +409,6 @@ async function ladeModelle() {
     el("chatModellWahl").append(z);
   }
 }
-
 function begruessung() {
   const b = blase('ki', 'Ich kann suchen, Text auf Bilder brennen und Motive vorschlagen. '
     + 'Erzeugen kostet Geld — das zeige ich dir vorher und du klickst.');

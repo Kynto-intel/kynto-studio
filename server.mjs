@@ -538,7 +538,20 @@ const routen = {
     return { eintrag: e };
   },
 
-  'GET /api/chat-modelle': async () => ({ modelle: await modelleChat.alle() }),
+  /**
+   * Ohne Parameter die kurze Auswahl, mit ?alle=1 alle rund 360.
+   * Zehn Eintraege liest man, vierzig Gruppen durchsucht man vergeblich.
+   */
+  'GET /api/chat-modelle': async (_req, url) => {
+    const vollstaendig = url.searchParams.get('alle') === '1';
+    return {
+      modelle: vollstaendig
+        ? await modelleChat.alle()
+        : await modelleChat.empfohlen(konfig.STANDARD.chatModell),
+      vollstaendig,
+      gesamt: (await modelleChat.alle()).length,
+    };
+  },
 
   'POST /api/chat-leeren': async () => ({ nachrichten: chatverlauf.leere() }),
 
