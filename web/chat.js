@@ -383,14 +383,17 @@ async function ladeModelle(alle = false) {
 
     // Ein Eintrag am Ende oeffnet die vollstaendige Liste. Der Wert ist
     // absichtlich keine Modell-Kennung - beiWahl faengt ihn ab.
+    // Auch die kurze Liste ist gruppiert - dort nach Preisklasse, in der
+    // vollen nach Anbieter. Der Server liefert die passende Gruppe mit.
     const eintraege = modelle.map((m) => ({
-      wert: m.id, text: m.name, notiz: m.notiz, gruppe: alle ? m.gruppe : null,
+      wert: m.id, text: m.name, notiz: m.notiz, gruppe: m.gruppe,
     }));
     if (!alle) {
       eintraege.push({
         wert: MEHR,
         text: "Alle Modelle zeigen",
         notiz: gesamt + " insgesamt, nach Anbieter sortiert",
+        gruppe: "Mehr",
       });
     }
 
