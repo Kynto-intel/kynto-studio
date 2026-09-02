@@ -27,6 +27,13 @@
     Ordner einstellen
   </button>
 
+  <!-- Oeffnet ein eigenes Fenster. Der Verlauf gehoert nicht in die
+       Galerie: man will nachsehen, waehrend man weiterarbeitet. -->
+  <button class="verlauf-knopf" id="verlaufKnopf" type="button"
+          title="Öffnet ein eigenes Fenster mit allem, was passiert ist">
+    <i class="punkt" id="verlaufPunkt"></i><span>Verlauf ansehen</span>
+  </button>
+
   <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
        Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
        als Titel dran, statt Platz zu fressen. -->
@@ -50,22 +57,11 @@
         <button id="sucheWeg" class="suche-weg" type="button" hidden aria-label="Suche löschen">×</button>
       </div>
       <button id="chatKnopf" class="neben" type="button" aria-expanded="false">Chat</button>
-      <button id="verlaufKnopf" class="neben" type="button" aria-expanded="false">
-        <i class="punkt" id="verlaufPunkt"></i>Verlauf
-      </button>
       <label class="haken">
         <input id="nurFavoriten" type="checkbox">
         <span>nur Favoriten</span>
       </label>
     </div>
-  </section>
-
-  <section class="verlauf-feld" id="verlaufFeld" hidden>
-    <p class="verlauf-hinweis">
-      Alles, was im Studio passiert — auch was Claude über die Kommandozeile auslöst.
-      Erscheint live, ohne Neuladen.
-    </p>
-    <ul class="verlauf-liste" id="verlaufListe"></ul>
   </section>
 
   <section class="raster" id="raster"></section>

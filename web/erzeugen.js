@@ -35,7 +35,7 @@ let art = hole('art', 'bild', (w) => w === 'bild' || w === 'video');
  * umgekehrt - wer zurueckschaltet, will sein voriges Modell wiederhaben.
  *
  * Wichtig: Das liegt NICHT im Browser, sondern in studio.config.json. Nur
- * so sehen Kommandozeile, Chat und ein Agent von aussen dieselbe Wahl.
+ * so sehen Chat und ein Programm von aussen dieselbe Wahl.
  * Die Regel dahinter: **das Modell waehlt der Mensch, nicht die KI.**
  */
 const gemerkteModelle = { bild: null, video: null };

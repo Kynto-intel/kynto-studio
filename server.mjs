@@ -53,7 +53,13 @@ function json(res, code, daten) {
   res.end(koerper);
 }
 
-/** Wer hat die Anfrage ausgeloest? Die CLI setzt X-Quelle: claude. */
+/**
+ * Wer hat die Anfrage ausgeloest?
+ *
+ * Die Oberflaeche laesst das Feld leer. Ein Programm von aussen, das die
+ * API benutzt, kann sich mit dem Kopf X-Quelle melden - dann steht das im
+ * Verlauf und man sieht, dass es nicht man selbst war.
+ */
 function quelleVon(req) {
   const roh = String(req.headers['x-quelle'] || '').toLowerCase();
   return roh === 'claude' ? 'claude' : 'studio';
@@ -241,7 +247,7 @@ const routen = {
     stilDatei: stil.STIL_DATEI,
     verbrauch: kosten.stand(),
     zaehlung: bibliothek.zaehlung(),
-    verlauf: verlauf.letzte(40),
+
     schriften: await schriften.verfuegbar(),
     textVorlagen: schriften.VORLAGEN,
   }),
@@ -288,7 +294,7 @@ const routen = {
     } = koerper;
 
     // Kein Modell, kein Format angegeben? Dann gilt, was in der App steht.
-    // Genau darauf verlassen sich Chat und Kommandozeile: Die KI waehlt
+    // Genau darauf verlaesst sich der Chat: Die KI waehlt
     // nie ein Modell, sie erbt die Einstellung des Menschen.
     const modell = koerper.modell || konfig.STANDARD.modellBild;
     const formatId = koerper.formatId || konfig.STANDARD.formatId;
@@ -475,13 +481,27 @@ const routen = {
 
   /**
    * Die Einstellung der Oberflaeche festhalten: Modell und Format.
-   * Wird bei jeder Aenderung gerufen, damit Kommandozeile, Chat und ein
+   * Wird bei jeder Aenderung gerufen, damit Oberflaeche, Chat und ein
    * Agent von aussen dieselbe Wahl sehen wie das Browserfenster.
    */
   /**
    * Textmodelle, die Werkzeuge beherrschen. Wird erst geholt, wenn der Chat
    * das erste Mal aufgeht - die Liste ist gross und beim Start nicht noetig.
    */
+  /**
+   * Alles fuer das Verlaufsfenster in einem Aufruf: was passiert ist und
+   * das Gespraech. Bewusst getrennt von /api/start - das Fenster braucht
+   * weder Modellkataloge noch Schriften, und /api/start braucht keine
+   * fuenfhundert Verlaufseintraege.
+   */
+  'GET /api/verlauf': async (_req, url) => {
+    const anzahl = Math.min(Math.max(1, Number(url.searchParams.get('anzahl')) || 500), 2000);
+    return {
+      eintraege: verlauf.letzte(anzahl),
+      chat: chatverlauf.lies(),
+    };
+  },
+
   'GET /api/chat-modelle': async () => ({ modelle: await chat.modelle() }),
 
   'POST /api/chat-leeren': async () => ({ nachrichten: chatverlauf.leere() }),
@@ -594,7 +614,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Offener Strom: der Browser sieht jeden Vorgang sofort, auch wenn
-    // Claude ihn ueber die Kommandozeile ausgeloest hat.
+    // ein Programm ihn ueber die API ausgeloest hat.
     if (req.method === 'POST' && url.pathname === '/api/chat') {
       return fuehreGespraech(req, res);
     }

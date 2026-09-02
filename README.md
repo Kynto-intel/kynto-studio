@@ -61,10 +61,11 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.
-- **Live activity feed** — see what was generated, by whom, with the full
-  prompt. Also picks up anything triggered from the command line, live.
-- **Command line** — script it, batch it, or let an AI assistant drive it
-  while you watch in the browser. `node studio.mjs hilfe` lists everything.
+- **Activity log in its own window** — four areas: images with their
+  prompts and thumbnails, videos, the assistant conversation, and settings
+  changes. Opens beside the app so you can read back while you work.
+- **Plain HTTP API** — the browser interface is just one client. Script it,
+  or let your own agent drive it while you watch in the browser.
 
 ---
 
@@ -112,8 +113,8 @@ OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
 If both are set, **the environment variable wins** — the usual rule. The
-sidebar and `studio.mjs status` say which one is in use, so a key that
-appears to be ignored is never a mystery.
+sidebar says which one is in use, so a key that appears to be ignored is
+never a mystery.
 
 The key is read on the server and never sent to the browser. There is no
 field in the interface to type it into, on purpose.
@@ -153,20 +154,34 @@ to stay writable — otherwise generated images would have nowhere to go.
 
 ---
 
-## Command line
+## Activity log
+
+Everything the app does is recorded: what was generated, with which prompt
+and model, what it cost. **Verlauf ansehen** at the bottom of the sidebar
+opens it in its own window, so you can read back while you keep working.
+
+Four areas, because the things have little to do with each other: images
+(with prompt and thumbnails), videos, the assistant conversation, and
+settings changes. New entries appear live.
+
+The log lives in `daten/verlauf.json` and never leaves your machine.
+
+---
+
+## HTTP API
+
+The server is a plain HTTP API on `127.0.0.1:4890`; the browser interface
+is just one client. Anything else on your machine can drive it the same way
+— a script, or your own agent:
 
 ```bash
-node studio.mjs hilfe
-node studio.mjs status
-node studio.mjs kosten openai/gpt-image-2 feed 3
-node studio.mjs erzeugen "a lone raven on wet black rock" --modell openai/gpt-image-2
-node studio.mjs text "Feed/image.png" "No *excuses*"
+curl "http://127.0.0.1:4890/api/bestand?suche=raven"
+curl -X POST http://127.0.0.1:4890/api/schaetzung -H "content-type: application/json" -d '{"anzahl":3}'
 ```
 
-`node studio.mjs hilfe` prints every command with its switches. Each call
-sends an `X-Quelle: claude` header and shows up in the browser's activity
-feed with the full prompt, so you can watch what a script - or an AI
-assistant - is doing while it happens.
+Leave out `modell` and `formatId` and the app's own setting applies — the
+same rule the assistant follows. Send an `X-Quelle` header to label your
+calls in the activity log.
 
 ---
 
@@ -222,7 +237,6 @@ MIT — see [LICENSE](LICENSE).
 ```
 kynto-studio/
 ├── server.mjs                 HTTP server, routing only
-├── studio.mjs                 command line
 ├── start.ps1                  starts the server
 ├── studio.config.json         your paths (git-ignored)
 ├── .env                       your API key (git-ignored)

@@ -282,7 +282,8 @@ async function los() {
   verdrahteBurger();
 
   // Live-Verlauf: zeigt auch, was Claude von aussen ausloest.
-  verlauf.zeige(start.verlauf || []);
+  // Der Verlauf steht in einem eigenen Fenster. Hier haengt nur die
+  // Live-Verbindung, damit neue Dateien sofort in der Galerie auftauchen.
   verlauf.setzeNachladeZiel(raster.lade);
   verlauf.verdrahte();
   verlauf.verbinde();
