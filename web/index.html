@@ -82,19 +82,23 @@
     </div>
   </div>
 
-  <!-- Welches Textmodell das Gespraech fuehrt. Nicht zu verwechseln mit dem
-       Bildmodell unten - das eine redet, das andere rendert. -->
-  <div class="chat-modell">
-    <span>Modell</span>
-    <div id="chatModellWahl"></div>
-  </div>
-
   <div class="chat-verlauf" id="chatVerlauf"></div>
 
   <div class="chat-eingabe">
     <textarea id="chatFeld" rows="1" placeholder="Fragen oder Motiv beschreiben …"
               autocomplete="off"></textarea>
     <button id="chatSenden" class="fest" type="button">Senden</button>
+  </div>
+
+  <!-- Gleicher Aufbau wie unter dem Komponisten: Kosten links, Auswahl
+       rechts. Das Menue klappt nach oben auf, es sitzt ja ganz unten.
+       Nicht zu verwechseln mit dem Bildmodell - das eine redet, das
+       andere rendert. -->
+  <div class="komponist-fuss chat-fuss">
+    <div class="chat-kosten" id="chatKosten"></div>
+    <div class="regler">
+      <div id="chatModellWahl"></div>
+    </div>
   </div>
 </aside>
 

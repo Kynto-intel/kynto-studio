@@ -19,6 +19,7 @@ let nachrichten = [];
 let laeuft = false;
 let chatModell = null;
 let modelleGeladen = false;
+let gespraechDollar = 0;
 let beiErzeugt = () => {};
 let verbrauchZeigen = () => {};
 
@@ -37,6 +38,20 @@ function geld(betrag) {
   if (betrag == null) return 'Preis unbekannt';
   const komma = (z) => z.toFixed(2).replace('.', ',');
   return betrag < 0.01 ? `${komma(betrag * 100)} ¢` : `${komma(betrag)} $`;
+}
+
+/**
+ * Was das Gespraech kostet - gleiche Stelle wie die Schaetzung unter dem
+ * Komponisten. Anders als dort steht hier der letzte Zug statt einer
+ * Vorschau: was der naechste kostet, weiss vorher niemand.
+ */
+function zeigeKosten(letzter) {
+  const ziel = el("chatKosten");
+  if (!ziel) return;
+  gespraechDollar += letzter || 0;
+  if (!gespraechDollar) { ziel.textContent = ""; return; }
+  ziel.textContent = "letzter Zug " + geld(letzter || 0)
+    + " · Gespräch " + geld(gespraechDollar);
 }
 
 // ------------------------------------------------------------- Darstellung
@@ -238,6 +253,7 @@ async function zug() {
         if (e.typ === 'fertig') {
           nachrichten = e.nachrichten;
           if (e.verbrauch) verbrauchZeigen(e.verbrauch);
+          zeigeKosten(e.dollar);
         }
       }
     }
@@ -290,6 +306,8 @@ export function verdrahte() {
 
   el('chatLeeren').addEventListener('click', async () => {
     nachrichten = [];
+    gespraechDollar = 0;
+    zeigeKosten(0);
     el('chatVerlauf').replaceChildren();
     await api.chatLeeren().catch(() => {});
     begruessung();
