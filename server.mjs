@@ -13,6 +13,7 @@ import {
 import * as bibliothek from './lib/bibliothek.mjs';
 import * as chat from './lib/anbieter-openrouter-chat.mjs';
 import * as chatverlauf from './lib/chatverlauf.mjs';
+import * as modelleChat from './lib/modelle-chat.mjs';
 import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
@@ -537,7 +538,7 @@ const routen = {
     return { eintrag: e };
   },
 
-  'GET /api/chat-modelle': async () => ({ modelle: await chat.modelle() }),
+  'GET /api/chat-modelle': async () => ({ modelle: await modelleChat.alle() }),
 
   'POST /api/chat-leeren': async () => ({ nachrichten: chatverlauf.leere() }),
 
