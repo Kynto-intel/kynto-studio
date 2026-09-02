@@ -27,13 +27,6 @@
     Ordner einstellen
   </button>
 
-  <!-- Oeffnet ein eigenes Fenster. Der Verlauf gehoert nicht in die
-       Galerie: man will nachsehen, waehrend man weiterarbeitet. -->
-  <button class="verlauf-knopf" id="verlaufKnopf" type="button"
-          title="Öffnet ein eigenes Fenster mit allem, was passiert ist">
-    <i class="punkt" id="verlaufPunkt"></i><span>Verlauf ansehen</span>
-  </button>
-
   <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
        Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
        als Titel dran, statt Platz zu fressen. -->
@@ -41,6 +34,13 @@
     <div id="anbieterStand"></div>
     <div id="verbrauch"></div>
   </div>
+
+  <!-- Ganz unten, unter dem Verbrauch. Der Punkt zeigt, ob die
+       Live-Verbindung steht. -->
+  <button class="verlauf-knopf" id="verlaufKnopf" type="button"
+          title="Alles, was in der App passiert ist">
+    <i class="punkt" id="verlaufPunkt"></i><span>Verlauf ansehen</span>
+  </button>
 </aside>
 
 <main class="haupt">
@@ -158,6 +158,22 @@
 
   </div>
 </footer>
+
+<!-- Der Verlauf als Fenster in der App, nicht im Browser. Gleiche
+     Machart wie der Ordner-Dialog: Ueberlagerung, Klick daneben schliesst. -->
+<div class="ordner-dialog verlauf-dialog" id="verlaufFenster" hidden>
+  <div class="vf-inhalt">
+    <div class="vf-kopf">
+      <div class="vs-titel">
+        <strong>Verlauf</strong>
+        <span id="vfStand"></span>
+      </div>
+      <button class="schliessen" id="vfSchliessen" type="button">×</button>
+    </div>
+    <nav class="vs-reiter" id="vfReiter"></nav>
+    <ul class="vs-liste" id="vfListe"></ul>
+  </div>
+</div>
 
 <div class="ordner-dialog" id="ordner" hidden>
   <div class="ord-inhalt">

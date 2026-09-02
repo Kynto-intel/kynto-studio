@@ -61,9 +61,9 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.
-- **Activity log in its own window** — four areas: images with their
+- **Activity log** — a window inside the app, four areas: images with their
   prompts and thumbnails, videos, the assistant conversation, and settings
-  changes. Opens beside the app so you can read back while you work.
+  changes. New entries appear live while it is open.
 - **Plain HTTP API** — the browser interface is just one client. Script it,
   or let your own agent drive it while you watch in the browser.
 
@@ -157,12 +157,12 @@ to stay writable — otherwise generated images would have nowhere to go.
 ## Activity log
 
 Everything the app does is recorded: what was generated, with which prompt
-and model, what it cost. **Verlauf ansehen** at the bottom of the sidebar
-opens it in its own window, so you can read back while you keep working.
+and model, what it cost. **Verlauf ansehen** sits at the very bottom of the
+sidebar and opens it as a window inside the app.
 
 Four areas, because the things have little to do with each other: images
 (with prompt and thumbnails), videos, the assistant conversation, and
-settings changes. New entries appear live.
+settings changes. New entries appear live while it is open.
 
 The log lives in `daten/verlauf.json` and never leaves your machine.
 

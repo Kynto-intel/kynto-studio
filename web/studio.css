@@ -559,77 +559,97 @@ body.chat-offen .leiste { right: 362px; }
 
 /* ------------------------------------------------ Verlauf: der Knopf */
 
-/* Dezent und ganz unten - man braucht ihn selten, aber dann sofort. */
+/* Ganz unten unter dem Verbrauch, dezent - man braucht ihn selten, aber
+   dann sofort. */
 .verlauf-knopf {
   display: flex;
   align-items: center;
   gap: 8px;
   background: none;
   border: 0;
+  border-top: 1px solid var(--border);
   color: var(--subtext);
   font: inherit;
   font-size: 11px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 10px 6px 2px;
   cursor: pointer;
   width: 100%;
   text-align: left;
-  margin-top: -10px;
 }
-.verlauf-knopf:hover { color: var(--text); background: var(--muted); }
+.verlauf-knopf:hover { color: var(--text); }
 .verlauf-knopf .punkt { margin-right: 0; }
-body.zu .verlauf-knopf { justify-content: center; padding: 8px 0; margin-top: 0; }
+body.zu .verlauf-knopf { justify-content: center; border-top: 0; }
 body.zu .verlauf-knopf span { display: none; }
 
-/* ------------------------------------------- Verlauf: das eigene Fenster */
+/* ------------------------------------------ Verlauf: das Fenster in der App */
 
-.verlauf-seite {
-  display: block;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
-  margin: 0;
+/* Erbt die Ueberlagerung von .ordner-dialog - gleiche Machart wie die
+   Ordner-Einstellung, damit sich nichts neu anfuehlt. */
+/* position: relative, damit das Schliessen-Kreuz am Fenster klebt und
+   nicht am Bildschirmrand - .schliessen ist absolut gesetzt. */
+.vf-inhalt {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-gross);
+  width: min(720px, 100%);
+  height: min(80vh, 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.vs-kopf {
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 16px 0;
-  z-index: 4;
+.vf-kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 0;
 }
-.vs-titel { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.vs-titel { display: flex; align-items: baseline; gap: 10px; }
 .vs-titel strong { font-size: 15px; letter-spacing: .03em; }
 .vs-titel span { font-size: 11px; color: var(--subtext); }
 
-.vs-reiter { display: flex; gap: 2px; }
+.vs-reiter {
+  display: flex;
+  gap: 2px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid var(--border);
+}
 .vs-reiter .reiter { border-radius: 8px 8px 0 0; padding: 7px 12px; }
-.vs-reiter .reiter[aria-current="true"] { background: var(--panel); color: var(--text); }
-
-.vs-inhalt { padding: 14px 16px 40px; }
+.vs-reiter .reiter[aria-current="true"] { background: var(--bg); color: var(--text); }
 
 .vs-liste {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 14px 20px 20px;
+  overflow-y: auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .vs-zeile {
-  background: var(--panel);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
 }
 .vs-zeile-kopf { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
 .vs-was { color: var(--accent); font-weight: 600; letter-spacing: .04em; }
+.vs-quelle {
+  color: var(--subtext);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
 .vs-zeile-kopf time { margin-left: auto; color: var(--subtext); font-variant-numeric: tabular-nums; }
 .vs-text { font-size: 12.5px; margin-top: 4px; word-break: break-word; white-space: pre-wrap; }
+
 /* Gekuerzt auf drei Zeilen - der volle Prompt steht aufklappbar darunter. */
 .vs-kurz { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
 .vs-fuss { font-size: 11px; color: var(--subtext); margin-top: 5px; font-variant-numeric: tabular-nums; }
 .vs-leer { color: var(--subtext); font-size: 12px; padding: 10px 2px; }
 
@@ -645,7 +665,7 @@ body.zu .verlauf-knopf span { display: none; }
 .vs-zeile pre {
   margin: 6px 0 0;
   padding: 9px;
-  background: var(--bg);
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 7px;
   font-family: ui-monospace, Consolas, monospace;
@@ -673,7 +693,7 @@ body.zu .verlauf-knopf span { display: none; }
   border-left: 2px solid var(--muted);
   border-radius: 0;
   padding: 2px 0 2px 10px;
-  margin-left: 6px;
+  margin-left: 8px;
   font-size: 11px;
   color: var(--subtext);
 }

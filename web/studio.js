@@ -7,6 +7,7 @@ import * as erzeugen from './erzeugen.js';
 import * as detail from './detail.js';
 import * as referenz from './referenz.js';
 import * as verlauf from './verlauf.js';
+import * as verlaufFenster from './verlauf-fenster.js';
 import * as texteditor from './texteditor.js';
 import * as ordner from './ordner.js';
 import * as chat from './chat.js';
@@ -282,10 +283,11 @@ async function los() {
   verdrahteBurger();
 
   // Live-Verlauf: zeigt auch, was Claude von aussen ausloest.
-  // Der Verlauf steht in einem eigenen Fenster. Hier haengt nur die
-  // Live-Verbindung, damit neue Dateien sofort in der Galerie auftauchen.
+  // Eine Live-Verbindung, zwei Abnehmer: die Galerie laedt nach, das
+  // Verlaufsfenster zeichnet nach.
+  verlaufFenster.verdrahte();
   verlauf.setzeNachladeZiel(raster.lade);
-  verlauf.verdrahte();
+  verlauf.setzeEreignisZiel(verlaufFenster.ergaenze);
   verlauf.verbinde();
 
   await raster.lade();

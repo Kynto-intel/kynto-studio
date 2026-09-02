@@ -1,16 +1,16 @@
-// Das Verlaufsfenster.
-//
-// Eigene Seite, eigenes Fenster - damit man das Studio nebenher weiter
-// bedienen kann und der Verlauf nicht die halbe Galerie verdeckt.
+// Das Verlaufsfenster - innerhalb der App, nicht im Browser.
 //
 // Vier Bereiche, weil die Sachen wenig miteinander zu tun haben: Bilder
 // kosten Geld und haben Prompts, Videos dauern Minuten, das Gespraech ist
 // ein Gespraech, und der Rest sind Einstellungen. In einer gemeinsamen
 // Liste findet man nichts wieder.
+//
+// Der Live-Strom liegt bewusst nicht hier, sondern in verlauf.js: eine
+// Verbindung fuer die ganze App, nicht eine je Ansicht. Dieses Modul
+// bekommt neue Eintraege gemeldet und zeichnet nur nach.
 
 const el = (id) => document.getElementById(id);
 
-/** Welche Verlaufsarten in welchen Bereich gehoeren. */
 const BEREICHE = [
   { id: 'bilder', label: 'Bilder', arten: ['erzeugt', 'text'] },
   { id: 'videos', label: 'Videos', arten: ['animiert'] },
@@ -30,10 +30,10 @@ const BESCHRIFTUNG = {
 let eintraege = [];
 let gespraech = [];
 let aktiv = 'bilder';
+let geladen = false;
 
 function zeitpunkt(iso) {
-  const d = new Date(iso);
-  return d.toLocaleString('de-DE', {
+  return new Date(iso).toLocaleString('de-DE', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   });
 }
@@ -44,7 +44,6 @@ function geld(betrag) {
   return betrag < 0.01 ? `${komma(betrag * 100)} ¢` : `${komma(betrag)} $`;
 }
 
-/** Aufklappbarer Block - der volle Prompt macht die Liste sonst unlesbar. */
 function faltung(titel, inhalt) {
   const d = document.createElement('details');
   const s = document.createElement('summary');
@@ -55,7 +54,7 @@ function faltung(titel, inhalt) {
   return d;
 }
 
-/** Vorschaubilder der erzeugten Dateien. Video bekommt ein video-Element. */
+/** Miniaturen der erzeugten Dateien. */
 function dateiVorschau(dateien) {
   const box = document.createElement('div');
   box.className = 'vs-dateien';
@@ -102,15 +101,24 @@ function verlaufZeile(e) {
   const was = document.createElement('span');
   was.className = 'vs-was';
   was.textContent = BESCHRIFTUNG[e.was] || e.was;
+  kopf.append(was);
+
+  // Kam der Aufruf von aussen, gehoert das dazu - sonst sucht man spaeter,
+  // warum etwas passiert ist, das man nicht angeklickt hat.
+  if (e.quelle && e.quelle !== 'studio') {
+    const wer = document.createElement('span');
+    wer.className = 'vs-quelle';
+    wer.textContent = e.quelle;
+    kopf.append(wer);
+  }
 
   const zeit = document.createElement('time');
   zeit.textContent = zeitpunkt(e.zeit);
-
-  kopf.append(was, zeit);
+  kopf.append(zeit);
 
   const text = document.createElement('div');
-  // Bei "erzeugt" steht der ganze Prompt in e.text - das sind schnell
-  // zwanzig Zeilen. Gekuerzt anzeigen, vollstaendig in der Faltung darunter.
+  // Bei "erzeugt" steht der ganze Prompt in e.text - schnell zwanzig
+  // Zeilen. Gekuerzt anzeigen, vollstaendig in der Faltung darunter.
   text.className = e.details?.prompt ? 'vs-text vs-kurz' : 'vs-text';
   text.textContent = e.text;
 
@@ -119,7 +127,6 @@ function verlaufZeile(e) {
   const d = e.details || {};
   if (d.dateien?.length) li.append(dateiVorschau(d.dateien));
   if (d.prompt) li.append(faltung('Vollständiger Prompt', d.prompt));
-  if (d.stilBlock) li.append(faltung('Stil-Block dieses Laufs', d.stilBlock));
 
   const zusatz = [];
   if (d.modellName || d.modell) zusatz.push(d.modellName || d.modell);
@@ -140,12 +147,7 @@ function verlaufZeile(e) {
   return li;
 }
 
-/**
- * Das Gespraech.
- *
- * Werkzeug-Zeilen zeigen, was der Assistent nachgeschlagen hat - ohne die
- * liest sich der Verlauf, als haette er die Antworten erraten.
- */
+/** Das Gespraech, samt dem was der Assistent nachgeschlagen hat. */
 function chatZeilen() {
   const namen = new Map();
   for (const n of gespraech) {
@@ -156,21 +158,24 @@ function chatZeilen() {
   for (const n of gespraech) {
     if (n.role === 'system') continue;
 
-    const li = document.createElement('li');
-    li.className = `vs-zeile vs-chat ${n.role}`;
-
     if (n.role === 'tool') {
       let ergebnis = {};
       try { ergebnis = JSON.parse(n.content); } catch { /* egal */ }
-      li.classList.add('vs-chat-werkzeug');
+      const li = document.createElement('li');
+      li.className = 'vs-zeile vs-chat-werkzeug';
       const name = namen.get(n.tool_call_id) || 'Werkzeug';
-      li.textContent = ergebnis.fehler
-        ? `${name} — ${ergebnis.fehler}`
-        : `${name}${ergebnis.erzeugt ? ` — ${ergebnis.erzeugt.length} Datei(en)` : ''}`;
-      if (ergebnis.abgelehnt) li.textContent = `${name} — vom Menschen abgelehnt`;
+      if (ergebnis.fehler) li.textContent = `${name} — ${ergebnis.fehler}`;
+      else if (ergebnis.abgelehnt) li.textContent = `${name} — abgelehnt`;
+      else if (ergebnis.erzeugt) li.textContent = `${name} — ${ergebnis.erzeugt.length} Datei(en)`;
+      else li.textContent = name;
       raus.push(li);
       continue;
     }
+
+    if (!n.content && !(n.tool_calls || []).length) continue;
+
+    const li = document.createElement('li');
+    li.className = `vs-zeile vs-chat ${n.role}`;
 
     const wer = document.createElement('div');
     wer.className = 'vs-wer';
@@ -188,15 +193,20 @@ function chatZeilen() {
       w.textContent = `ruft auf: ${a.function?.name}`;
       li.append(w);
     }
-
-    if (!n.content && !(n.tool_calls || []).length) continue;
     raus.push(li);
   }
   return raus;
 }
 
+function leerMeldung(text) {
+  const li = document.createElement('li');
+  li.className = 'vs-leer';
+  li.textContent = text;
+  el('vfListe').append(li);
+}
+
 function zeichne() {
-  const liste = el('vsListe');
+  const liste = el('vfListe');
   liste.replaceChildren();
 
   if (aktiv === 'chat') {
@@ -212,15 +222,8 @@ function zeichne() {
   for (const e of passend) liste.append(verlaufZeile(e));
 }
 
-function leerMeldung(text) {
-  const li = document.createElement('li');
-  li.className = 'vs-leer';
-  li.textContent = text;
-  el('vsListe').append(li);
-}
-
 function baueReiter() {
-  const nav = el('vsReiter');
+  const nav = el('vfReiter');
   nav.replaceChildren();
   for (const b of BEREICHE) {
     const zahl = b.id === 'chat'
@@ -249,35 +252,58 @@ function baueReiter() {
   }
 }
 
-async function lade() {
-  const antwort = await fetch('/api/verlauf?anzahl=800');
-  const daten = await antwort.json();
-  eintraege = daten.eintraege || [];
-  gespraech = daten.chat || [];
-  el('vsStand').textContent = `${eintraege.length} Vorgänge · live verbunden`;
+function zeigeStand() {
+  el('vfStand').textContent = `${eintraege.length} Vorgänge`;
+}
+
+/**
+ * Ein neuer Vorgang kam ueber den Strom.
+ *
+ * Nur nachzeichnen, wenn das Fenster offen ist - sonst baut man bei jedem
+ * Bild eine Liste auf, die niemand sieht. Beim naechsten Oeffnen wird
+ * ohnehin frisch geladen.
+ */
+export function ergaenze(eintrag) {
+  if (!geladen) return;
+  eintraege.unshift(eintrag);
+  if (el('verlaufFenster').hidden) return;
+  zeigeStand();
   baueReiter();
   zeichne();
 }
 
-/** Neue Vorgaenge erscheinen sofort, ohne dass man neu laedt. */
-function verbinde() {
-  const strom = new EventSource('/api/verlauf-strom');
-  strom.addEventListener('message', (e) => {
-    try {
-      eintraege.unshift(JSON.parse(e.data));
-    } catch {
-      return;
-    }
-    el('vsStand').textContent = `${eintraege.length} Vorgänge · live verbunden`;
-    baueReiter();
-    zeichne();
-  });
-  strom.addEventListener('error', () => {
-    el('vsStand').textContent = `${eintraege.length} Vorgänge · Verbindung unterbrochen`;
-  });
+async function lade() {
+  const daten = await fetch('/api/verlauf?anzahl=800').then((r) => r.json());
+  eintraege = daten.eintraege || [];
+  gespraech = daten.chat || [];
+  geladen = true;
+  zeigeStand();
+  baueReiter();
+  zeichne();
 }
 
-aktiv = localStorage.getItem('kynto-verlauf-bereich') || 'bilder';
-lade().then(verbinde).catch((fehler) => {
-  el('vsStand').textContent = `konnte nicht laden: ${fehler.message}`;
-});
+export async function oeffne() {
+  el('verlaufFenster').hidden = false;
+  try {
+    await lade();
+  } catch (fehler) {
+    el('vfStand').textContent = `konnte nicht laden: ${fehler.message}`;
+  }
+}
+
+function schliesse() {
+  el('verlaufFenster').hidden = true;
+}
+
+export function verdrahte() {
+  aktiv = localStorage.getItem('kynto-verlauf-bereich') || 'bilder';
+
+  el('verlaufKnopf').addEventListener('click', oeffne);
+  el('vfSchliessen').addEventListener('click', schliesse);
+  el('verlaufFenster').addEventListener('click', (e) => {
+    if (e.target === el('verlaufFenster')) schliesse();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !el('verlaufFenster').hidden) schliesse();
+  });
+}
