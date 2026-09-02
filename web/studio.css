@@ -427,6 +427,132 @@ body.zu .ordner-leer { display: none; }
   .suche input, .suche input:focus { width: 150px; }
 }
 
+/* ------------------------------------------------- Chat-Seitenleiste */
+
+/* Faehrt von rechts ein. Kein Ueberlagern des Rasters: der Hauptbereich
+   bekommt Platz weggenommen, damit man Bild und Gespraech nebeneinander
+   sieht - genau dafuer ist die Leiste da. */
+.chat {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  bottom: 10px;
+  width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  transform: translateX(calc(100% + 16px));
+  transition: transform .22s ease;
+}
+body.chat-offen .chat { transform: none; }
+body.chat-offen .haupt { padding-right: 372px; }
+body.chat-offen .leiste { right: 362px; }
+
+.chat-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-kopf strong { font-size: 13px; letter-spacing: .03em; }
+.chat-kopf-knoepfe { display: flex; gap: 4px; }
+
+.chat-klein {
+  background: none;
+  border: 0;
+  color: var(--subtext);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chat-klein:hover { background: var(--muted); color: var(--text); }
+
+.chat-verlauf {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.blase {
+  max-width: 92%;
+  padding: 9px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.blase.ich { align-self: flex-end; background: var(--muted); color: var(--text); }
+.blase.ki { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
+.blase.start { color: var(--subtext); font-size: 12px; }
+.blase.fehler { border-color: #c2542a; color: #c2542a; }
+
+/* Was die KI im Hintergrund getan hat - sichtbar, aber leise. */
+.chat-werkzeug {
+  align-self: flex-start;
+  font-size: 11px;
+  color: var(--subtext);
+  padding-left: 12px;
+  border-left: 2px solid var(--muted);
+}
+.chat-werkzeug.fehler { border-left-color: #c2542a; color: #c2542a; }
+.chat-werkzeug.denkt { color: var(--accent); border-left-color: var(--accent); }
+
+/* Der Vorschlag, der Geld kostet. Faellt bewusst auf. */
+.chat-vorschlag {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.vor-kopf { font-size: 13px; font-weight: 600; color: var(--text); }
+.vor-motiv { font-size: 12px; color: var(--subtext); line-height: 1.45; }
+.vor-zeile { font-size: 11px; color: var(--text); font-variant-numeric: tabular-nums; }
+.vor-knoepfe { display: flex; gap: 7px; margin-top: 2px; }
+.vor-knoepfe button { flex: 1; }
+.vor-ergebnis { font-size: 11px; color: var(--subtext); }
+
+.chat-eingabe {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 11px;
+  border-top: 1px solid var(--border);
+}
+.chat-eingabe textarea {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 10px;
+  resize: none;
+  min-height: 38px;
+  line-height: 1.45;
+}
+.chat-eingabe textarea:focus { outline: none; border-color: var(--muted); }
+
+/* Auf schmalen Fenstern legt sich die Leiste ueber das Raster, statt es
+   auf eine unbrauchbare Breite zu quetschen. */
+@media (max-width: 1100px) {
+  body.chat-offen .haupt { padding-right: 24px; }
+  body.chat-offen .leiste { right: 0; }
+}
+
 /* ---------------------------------------------------- Verlauf */
 
 .verlauf-feld {

@@ -9,6 +9,7 @@ import * as referenz from './referenz.js';
 import * as verlauf from './verlauf.js';
 import * as texteditor from './texteditor.js';
 import * as ordner from './ordner.js';
+import * as chat from './chat.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -262,6 +263,9 @@ async function los() {
   el('nurFavoriten').addEventListener('change', (e) => {
     raster.setzeFavoritenFilter(e.target.checked);
   });
+
+  chat.setzeCallbacks({ fertig: raster.lade, verbrauch: zeigeVerbrauch });
+  chat.verdrahte();
 
   verdrahteBurger();
 

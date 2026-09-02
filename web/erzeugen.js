@@ -29,13 +29,21 @@ let anbieterStand = {};
 let art = hole('art', 'bild', (w) => w === 'bild' || w === 'video');
 
 /**
- * Zuletzt gewaehltes Modell, getrennt nach Gattung.
+ * Modell je Gattung, wie es der Server kennt.
  *
  * Getrennt, weil ein Bildmodell beim Umschalten auf Video nichts taugt und
- * umgekehrt - wer zurueckschaltet, will sein voriges Modell wiederhaben,
- * nicht das erste aus der Liste.
+ * umgekehrt - wer zurueckschaltet, will sein voriges Modell wiederhaben.
+ *
+ * Wichtig: Das liegt NICHT im Browser, sondern in studio.config.json. Nur
+ * so sehen Kommandozeile, Chat und ein Agent von aussen dieselbe Wahl.
+ * Die Regel dahinter: **das Modell waehlt der Mensch, nicht die KI.**
  */
-const gemerkteModelle = hole('modelle', {}, (w) => w && typeof w === 'object');
+const gemerkteModelle = { bild: null, video: null };
+
+/** Einstellung an den Server melden. Fehler hier duerfen nichts blockieren. */
+function merkeAmServer(feld, wert) {
+  api.standardSpeichern({ [feld]: wert }).catch(() => {});
+}
 
 export function setzeCallbacks({ fertig, verbrauch }) {
   beiFertig = fertig || beiFertig;
@@ -94,13 +102,15 @@ function baueModellListe() {
     }),
     beiWahl: (neu) => {
       gemerkteModelle[art] = neu;
-      merke('modelle', gemerkteModelle);
+      merkeAmServer(art === 'video' ? 'modellVideo' : 'modellBild', neu);
       aktualisiereSchaetzung();
     },
   });
 }
 
-export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preise: p, gemessen: g }) {
+export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preise: p, gemessen: g, standard = {} }) {
+  gemerkteModelle.bild = standard.modellBild || null;
+  gemerkteModelle.video = standard.modellVideo || null;
   katalog.bild = modelleBild;
   katalog.video = modelleVideo;
   preise = p || preise;
@@ -126,14 +136,14 @@ export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preis
   zeigeGattung();
 
   regler.format = baueAuswahl(el('formatWahl'), {
-    wert: hole('format', 'feed', (w) => formate.some((f) => f.id === w)),
+    wert: formate.some((f) => f.id === standard.formatId) ? standard.formatId : 'feed',
     eintraege: formate.map((f) => ({
       wert: f.id,
       text: f.label,
       notiz: f.zielW ? `${f.zielW}×${f.zielH}` : 'unbeschnitten',
     })),
     beiWahl: (neu) => {
-      merke('format', neu);
+      merkeAmServer('formatId', neu);
       aktualisiereSchaetzung();
     },
   });

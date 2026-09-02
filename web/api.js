@@ -35,6 +35,7 @@ export const api = {
   umbenennen: (pfad, neuerName) => ruf('/api/umbenennen', { method: 'POST', body: JSON.stringify({ pfad, neuerName }) }),
   textAnwenden: (pfad, ebenen) => ruf('/api/text-anwenden', { method: 'POST', body: JSON.stringify({ pfad, ebenen }) }),
   stilSpeichern: (text) => ruf('/api/stil', { method: 'POST', body: JSON.stringify({ text }) }),
+  standardSpeichern: (koerper) => ruf('/api/standard', { method: 'POST', body: JSON.stringify(koerper) }),
   konfig: () => ruf('/api/konfig'),
   konfigSpeichern: (koerper) => ruf('/api/konfig', { method: 'POST', body: JSON.stringify(koerper) }),
   modelleAktualisieren: (art) => ruf('/api/modelle-aktualisieren', { method: 'POST', body: JSON.stringify({ art }) }),

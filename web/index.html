@@ -49,6 +49,7 @@
                autocomplete="off" spellcheck="false" aria-label="Bestand durchsuchen">
         <button id="sucheWeg" class="suche-weg" type="button" hidden aria-label="Suche löschen">×</button>
       </div>
+      <button id="chatKnopf" class="neben" type="button" aria-expanded="false">Chat</button>
       <button id="verlaufKnopf" class="neben" type="button" aria-expanded="false">
         <i class="punkt" id="verlaufPunkt"></i>Verlauf
       </button>
@@ -69,6 +70,26 @@
 
   <section class="raster" id="raster"></section>
 </main>
+
+<!-- Zweite Seitenleiste: das Gespraech. Erzeugen laeuft auch von hier ueber
+     dieselbe Route wie unten im Komponisten - ein Weg, eine Bestaetigung. -->
+<aside class="chat" id="chat">
+  <div class="chat-kopf">
+    <strong>Assistent</strong>
+    <div class="chat-kopf-knoepfe">
+      <button id="chatLeeren" class="chat-klein" type="button" title="Gespräch verwerfen">Neu</button>
+      <button id="chatZu" class="chat-klein" type="button" aria-label="Chat schließen">×</button>
+    </div>
+  </div>
+
+  <div class="chat-verlauf" id="chatVerlauf"></div>
+
+  <div class="chat-eingabe">
+    <textarea id="chatFeld" rows="1" placeholder="Fragen oder Motiv beschreiben …"
+              autocomplete="off"></textarea>
+    <button id="chatSenden" class="fest" type="button">Senden</button>
+  </div>
+</aside>
 
 <!-- Eingabe wie ein Chatfeld: unten, alles eingeklappt. -->
 <footer class="leiste">

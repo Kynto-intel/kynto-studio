@@ -6,11 +6,13 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as konfig from './lib/konfig.mjs';
-import { PORT, HOST, APP, anbieterBereit, schluesselStand } from './lib/konfig.mjs';
+import { PORT, HOST, APP, anbieterBereit, schluesselStand, speichereStandard } from './lib/konfig.mjs';
 import {
   absolut, relativ, stelleOrdnerSicher, ordnerNach, saubererName, pruefeInnerhalb,
 } from './lib/pfade.mjs';
 import * as bibliothek from './lib/bibliothek.mjs';
+import * as chat from './lib/anbieter-openrouter-chat.mjs';
+import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
 import * as kosten from './lib/kosten.mjs';
@@ -67,6 +69,146 @@ async function koerperLesen(req) {
   }
 }
 
+// ---------------------------------------------------------------- Gespraech
+
+/**
+ * Was das Modell ueber sich und die App wissen muss.
+ *
+ * Die zwei harten Regeln stehen absichtlich ganz oben und doppelt: einmal
+ * hier, einmal in den Werkzeugbeschreibungen. Ein Modell, das sie ueberliest,
+ * kann trotzdem nichts anrichten - `werkzeuge.fuehreAus` weigert sich - aber
+ * es soll gar nicht erst danach fragen.
+ */
+function systemHinweis() {
+  const s = konfig.STANDARD;
+  return [
+    'Du bist der Assistent in Kynto Studio, einer lokalen App fuer Bilder und Videos.',
+    '',
+    'ZWEI REGELN, die du nicht umgehen kannst:',
+    '1. Du waehlst KEIN Modell. Womit gerendert wird, stellt der Mensch in der',
+    `   App ein. Aktuell: ${s.modellBild} fuer Bilder, ${s.modellVideo} fuer Video,`,
+    `   Format ${s.formatId}. Wenn jemand ein anderes Modell will, sage ihm, dass`,
+    '   er es unten in der Leiste umstellt - du kannst es nicht.',
+    '2. Erzeugen kostet echtes Geld. Du schlaegst es vor, der Mensch klickt.',
+    '   Nenne vorher, was es kostet - `einstellung_lesen` sagt es dir.',
+    '',
+    'Zum Bildaufbau:',
+    '- Motive auf Englisch, und NUR den Bildinhalt beschreiben. Palette, Licht',
+    '  und Stimmung haengt der Stil-Block automatisch an jeden Prompt. Wiederhole',
+    '  sie nicht, das verwaessert nur. Mit `stil_lesen` siehst du, was drinsteht.',
+    `- Formate: ${werkzeuge.formateAlsText()}`,
+    '- Text im Bild kann kein Bildmodell. Ein einzelnes Wort ja, ein ganzer Satz',
+    '  nicht. Fuer Sprueche erst das Motiv rendern, dann `text_aufs_bild` - das',
+    '  laeuft lokal und kostet nichts.',
+    '',
+    'Antworte auf Deutsch, kurz und direkt. Keine Aufzaehlung deiner Werkzeuge,',
+    'keine Entschuldigungen. Wenn du etwas nicht kannst, sag es in einem Satz.',
+  ].join('\n');
+}
+
+/** Ein Ereignis an den Browser schicken. */
+function sende(res, daten) {
+  res.write(`data: ${JSON.stringify(daten)}\n\n`);
+}
+
+/**
+ * Ein Gespraechszug, moeglicherweise ueber mehrere Werkzeug-Runden.
+ *
+ * Endet in einem von drei Zustaenden:
+ *   - Text: das Modell hat geantwortet, fertig.
+ *   - Vorschlag: das Modell will etwas erzeugen. Die Schleife bricht ab und
+ *     wartet auf den Klick des Menschen. Der Browser fuehrt dann selbst
+ *     /api/erzeugen aus und schickt das Ergebnis als naechsten Zug zurueck.
+ *   - Fehler.
+ */
+async function fuehreGespraech(req, res) {
+  const koerper = await koerperLesen(req);
+  const modell = konfig.STANDARD.chatModell;
+
+  res.writeHead(200, {
+    'content-type': 'text/event-stream; charset=utf-8',
+    'cache-control': 'no-store',
+    connection: 'keep-alive',
+  });
+
+  const nachrichten = Array.isArray(koerper.nachrichten) ? [...koerper.nachrichten] : [];
+  if (!nachrichten.length) {
+    sende(res, { typ: 'fehler', text: 'Keine Nachricht angegeben.' });
+    return res.end();
+  }
+
+  const mitSystem = [{ role: 'system', content: systemHinweis() }, ...nachrichten];
+  let dollarGesamt = 0;
+
+  try {
+    for (let runde = 1; runde <= chat.MAX_RUNDEN; runde++) {
+      const { nachricht, kosten: preis } = await chat.frage({
+        nachrichten: mitSystem,
+        modell,
+        werkzeuge: werkzeuge.schema(),
+      });
+
+      if (preis) {
+        dollarGesamt += preis;
+        kosten.buche({ dollar: preis, modell });
+      }
+      mitSystem.push(nachricht);
+      nachrichten.push(nachricht);
+
+      const aufrufe = nachricht.tool_calls || [];
+      if (!aufrufe.length) {
+        sende(res, { typ: 'text', inhalt: nachricht.content || '' });
+        break;
+      }
+
+      let wartetAufKlick = false;
+      for (const a of aufrufe) {
+        const name = a.function?.name;
+        let argumente = {};
+        try {
+          argumente = JSON.parse(a.function?.arguments || '{}');
+        } catch { /* kaputte Argumente wie leer behandeln */ }
+
+        if (werkzeuge.brauchtBestaetigung(name)) {
+          sende(res, { typ: 'vorschlag', id: a.id, name, argumente });
+          wartetAufKlick = true;
+          continue;
+        }
+
+        let ergebnis;
+        try {
+          ergebnis = await werkzeuge.fuehreAus(name, argumente);
+        } catch (fehler) {
+          ergebnis = { fehler: fehler.message };
+        }
+        sende(res, { typ: 'werkzeug', name, argumente, ergebnis });
+
+        const zeile = { role: 'tool', tool_call_id: a.id, content: JSON.stringify(ergebnis) };
+        mitSystem.push(zeile);
+        nachrichten.push(zeile);
+      }
+
+      // Auf einen Klick zu warten heisst: hier ist Schluss. Die Antwort auf
+      // den Vorschlag kommt als neuer Zug, mit dem Ergebnis als tool-Zeile.
+      if (wartetAufKlick) break;
+
+      if (runde === chat.MAX_RUNDEN) {
+        sende(res, { typ: 'text', inhalt: 'Ich drehe mich im Kreis - formulier die Frage bitte anders.' });
+      }
+    }
+  } catch (fehler) {
+    sende(res, { typ: 'fehler', text: fehler.message });
+  }
+
+  sende(res, {
+    typ: 'fertig',
+    nachrichten,
+    dollar: Number(dollarGesamt.toFixed(6)),
+    verbrauch: kosten.stand(),
+  });
+  res.end();
+}
+
 // ---------------------------------------------------------------- Routen
 
 const routen = {
@@ -83,6 +225,7 @@ const routen = {
     modelleVideo: modelleVideo.fuerBildZuVideo().map((m) => ({ ...m, art: 'video', kannReferenz: m.kannBildEingang })),
     anbieter: anbieterBereit(),
     schluessel: schluesselStand(),
+    standard: { ...konfig.STANDARD },
     stil: stil.ladeStil(),
     standardStil: stil.STANDARD_STIL,
     stilDatei: stil.STIL_DATEI,
@@ -108,7 +251,10 @@ const routen = {
    * Gemessene Preise schlagen die Schaetzung aus der Modell-Liste.
    */
   'POST /api/schaetzung': async (req) => {
-    const { modell, formatId = 'feed', anzahl = 1, klein = false } = await koerperLesen(req);
+    const k = await koerperLesen(req);
+    const modell = k.modell || konfig.STANDARD.modellBild;
+    const formatId = k.formatId || konfig.STANDARD.formatId;
+    const { anzahl = 1, klein = false } = k;
     const m = format.masse(formatId, klein);
     const gemessen = kosten.gemessen()[modell]?.schnitt || null;
     const geschaetzt = (await preise.fuer('bild'))[modell]?.schaetzungProBild || null;
@@ -128,9 +274,14 @@ const routen = {
   'POST /api/erzeugen': async (req) => {
     const koerper = await koerperLesen(req);
     const {
-      motiv = '', modell = '', formatId = 'feed',
-      anzahl = 1, klein = false, mitStil = true, name = '',
+      motiv = '', anzahl = 1, klein = false, mitStil = true, name = '',
     } = koerper;
+
+    // Kein Modell, kein Format angegeben? Dann gilt, was in der App steht.
+    // Genau darauf verlassen sich Chat und Kommandozeile: Die KI waehlt
+    // nie ein Modell, sie erbt die Einstellung des Menschen.
+    const modell = koerper.modell || konfig.STANDARD.modellBild;
+    const formatId = koerper.formatId || konfig.STANDARD.formatId;
 
     if (!String(motiv).trim()) throw new Error('Kein Motiv angegeben.');
     const wieViele = Math.min(Math.max(1, Number(anzahl) || 1), 10);
@@ -312,6 +463,16 @@ const routen = {
     return { ...neu, zaehlung: bibliothek.zaehlung() };
   },
 
+  /**
+   * Die Einstellung der Oberflaeche festhalten: Modell und Format.
+   * Wird bei jeder Aenderung gerufen, damit Kommandozeile, Chat und ein
+   * Agent von aussen dieselbe Wahl sehen wie das Browserfenster.
+   */
+  'POST /api/standard': async (req) => {
+    const koerper = await koerperLesen(req);
+    return { standard: speichereStandard(koerper) };
+  },
+
   'POST /api/stil': async (req) => {
     const { text } = await koerperLesen(req);
     const neu = stil.speichereStil(text);
@@ -336,9 +497,13 @@ const routen = {
   'POST /api/animieren': async (req) => {
     const koerper = await koerperLesen(req);
     const {
-      motiv = '', modell, quellBild = null, formatId = 'story',
+      motiv = '', quellBild = null,
       dauer = 5, aufloesung = '1080p', name = '',
     } = koerper;
+
+    // Wie beim Bild: ohne Angabe gilt die Einstellung aus der App.
+    const modell = koerper.modell || konfig.STANDARD.modellVideo;
+    const formatId = koerper.formatId || 'story';
 
     if (!String(motiv).trim()) throw new Error('Kein Bewegungs-Prompt angegeben.');
     const modellInfo = modelleVideo.finde(modell);
@@ -412,6 +577,10 @@ const server = http.createServer(async (req, res) => {
 
     // Offener Strom: der Browser sieht jeden Vorgang sofort, auch wenn
     // Claude ihn ueber die Kommandozeile ausgeloest hat.
+    if (req.method === 'POST' && url.pathname === '/api/chat') {
+      return fuehreGespraech(req, res);
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/verlauf-strom') {
       return verlauf.melde(req, res);
     }
