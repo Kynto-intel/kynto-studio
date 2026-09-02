@@ -87,8 +87,23 @@ async function koerperLesen(req) {
  * kann trotzdem nichts anrichten - `werkzeuge.fuehreAus` weigert sich - aber
  * es soll gar nicht erst danach fragen.
  */
-function systemHinweis() {
+function systemHinweis(siehtBilder = false) {
   const s = konfig.STANDARD;
+  const ansehen = siehtBilder
+    ? [
+      '',
+      'Du kannst Bilder wirklich ansehen: bild_ansehen legt dir eines vor.',
+      'Nutze es, bevor du etwas ueber ein Bild behauptest - nach dem Erzeugen,',
+      'und bevor du Text daraufsetzt. Sag was du siehst, auch wenn es nicht',
+      'passt: schiefe Haende, unlesbare Schrift, falsche Stimmung. Ein ehrliches',
+      '"das ist nichts geworden" spart ein zweites Bild.',
+    ]
+    : [
+      '',
+      'Das eingestellte Modell kann keine Bilder ansehen. Behaupte deshalb',
+      'nichts ueber den Inhalt eines Bildes - du kennst nur Dateiname, Motiv',
+      'und Prompt aus der Bibliothek.',
+    ];
   return [
     'Du bist der Assistent in Kynto Studio, einer lokalen App fuer Bilder und Videos.',
     '',
@@ -108,6 +123,8 @@ function systemHinweis() {
     '- Text im Bild kann kein Bildmodell. Ein einzelnes Wort ja, ein ganzer Satz',
     '  nicht. Fuer Sprueche erst das Motiv rendern, dann `text_aufs_bild` - das',
     '  laeuft lokal und kostet nichts.',
+    '',
+    ...ansehen,
     '',
     'Antworte auf Deutsch, kurz und direkt. Keine Aufzaehlung deiner Werkzeuge,',
     'keine Entschuldigungen. Wenn du etwas nicht kannst, sag es in einem Satz.',
@@ -149,7 +166,12 @@ async function fuehreGespraech(req, res) {
     return res.end();
   }
 
-  const mitSystem = [{ role: 'system', content: systemHinweis() }, ...nachrichten];
+  // Nur Modelle mit Bildeingang bekommen bild_ansehen angeboten. Ein reines
+  // Textmodell wuerde es sonst aufrufen und nichts damit anfangen koennen.
+  const modellInfo = (await modelleChat.alle()).find((m) => m.id === modell);
+  const siehtBilder = Boolean(modellInfo?.siehtBilder);
+
+  const mitSystem = [{ role: 'system', content: systemHinweis(siehtBilder) }, ...nachrichten];
   let dollarGesamt = 0;
 
   try {
@@ -157,7 +179,7 @@ async function fuehreGespraech(req, res) {
       const { nachricht, kosten: preis } = await chat.frage({
         nachrichten: mitSystem,
         modell,
-        werkzeuge: werkzeuge.schema(),
+        werkzeuge: werkzeuge.schema({ siehtBilder }),
       });
 
       if (preis) {
@@ -198,6 +220,32 @@ async function fuehreGespraech(req, res) {
         const zeile = { role: 'tool', tool_call_id: a.id, content: JSON.stringify(ergebnis) };
         mitSystem.push(zeile);
         nachrichten.push(zeile);
+
+        // Das Bild geht NUR in den Verlauf dieses Zuges, nicht in den
+        // gespeicherten. Als Base64 waeren es zweihunderttausend Zeichen -
+        // die laegen in chat.json und wuerden bei jedem weiteren Zug erneut
+        // bezahlt. Will das Modell es spaeter nochmal sehen, ruft es das
+        // Werkzeug wieder auf; das kostet einmal statt immer.
+        if (ergebnis.angesehen) {
+          try {
+            const bytes = await format.kleineFassung(absolut(ergebnis.angesehen));
+            mitSystem.push({
+              role: 'user',
+              content: [
+                { type: 'text', text: `Das ist ${ergebnis.angesehen}.` },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:image/png;base64,${bytes.toString('base64')}` },
+                },
+              ],
+            });
+          } catch (fehler) {
+            mitSystem.push({
+              role: 'user',
+              content: `Das Bild liess sich nicht laden: ${fehler.message}`,
+            });
+          }
+        }
       }
 
       // Auf einen Klick zu warten heisst: hier ist Schluss. Die Antwort auf

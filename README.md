@@ -51,7 +51,9 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   Videos tab appears next to the title; if you only make images, it never
   shows up.
 - **A built-in assistant** — a chat sidebar that drives the studio: it
-  searches your library, reads your style block, burns text onto images.
+  searches your library, reads your style block, burns text onto images,
+  and **actually looks at the pictures** when the chosen model can see them,
+  so it tells you the hands came out wrong instead of guessing.
   When it wants to generate something it **proposes**, showing subject,
   format and price — you click. Paid tools have no execute path on the
   server at all, so a chatty model cannot spend your money. It never picks
