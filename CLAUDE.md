@@ -35,7 +35,8 @@ server.mjs      NUR Routing. Keine Fachlogik. Ausnahme: die Gespraechsschleife
 lib/            ein Modul, eine Aufgabe. Nichts weiss mehr, als es braucht.
 web/            die Oberflaeche, ES-Module direkt im Browser
 skripte/        PowerShell fuer System.Drawing
-aenderungen/    eine Notiz je Aenderung - was, warum, wie geprueft
+aenderungen/    eine Notiz je Aenderung - was, warum, wie geprueft.
+                Git-ignoriert: Arbeitsmaterial, nicht Teil des Repos
 plaene/         was noch nicht gebaut ist, eine Datei je Vorhaben
 daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 ```
@@ -230,6 +231,11 @@ haette ein Loch.
 ---
 
 ## Notiz in `aenderungen/` — Pflicht, aber nicht fuer alles
+
+Der Ordner ist **git-ignoriert**. Die Notizen sind die Uebergabe zwischen
+Arbeitssitzungen - wer nach einer Pause weitermacht, liest hier nach, was
+zuletzt passiert ist und warum. Sie gehen niemanden ausserhalb etwas an;
+nach aussen sprechen die Commit-Nachrichten und das README.
 
 **Jede groessere Sache bekommt eine eigene `.md` in `aenderungen/`.** Immer
 eine neue Datei, nie an eine bestehende angehaengt: eine Aenderung, eine

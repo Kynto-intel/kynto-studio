@@ -280,7 +280,6 @@ kynto-studio/
 ├── skripte/                   PowerShell helpers
 │   ├── resize.ps1             crop and scale
 │   └── text.ps1               render text onto an image
-├── aenderungen/               one note per change: what, why, how tested
 ├── web/                       the interface, no build step
 └── daten/                     runtime data, git-ignored
     ├── verlauf.json           activity log with full prompts

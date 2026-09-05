@@ -12,6 +12,11 @@ CLI.md
 # Vorlage ist studio.config.beispiel.json
 studio.config.json
 
+# Aenderungsnotizen. Sie sind die Uebergabe zwischen Arbeitssitzungen -
+# was wurde geaendert, warum, wie geprueft. Persoenliches Arbeitsmaterial,
+# kein Teil der Veroeffentlichung.
+aenderungen/
+
 # Laufzeitdaten der App: Verlauf mit allen Prompts, Verbrauch, eigener
 # Stil-Block. Wird beim ersten Start selbst angelegt.
 daten/
