@@ -10,6 +10,9 @@ import * as verlauf from './verlauf.js';
 import * as verlaufFenster from './verlauf-fenster.js';
 import * as texteditor from './texteditor.js';
 import * as ordner from './ordner.js';
+import * as vorlagen from './vorlagen.js';
+import * as einstellungen from './einstellungen.js';
+import * as regie from './regie.js';
 import * as chat from './chat.js';
 
 const el = (id) => document.getElementById(id);
@@ -139,9 +142,16 @@ function zeigeVerbrauch(v) {
     v.clips ? `${v.clips} Clip(s)` : null,
   ].filter(Boolean).join(', ');
 
-  ziel.append(fussZeile(stueck ? `Heute · ${stueck}` : 'Heute', geld(v.dollar), {
-    titel: 'Was OpenRouter heute tatsächlich abgerechnet hat — Bilder, Clips und Chat zusammen',
-  }));
+  // Steht eine Tagesgrenze, gehoert sie neben den Betrag: sonst sieht man
+  // erst beim Ablehnen, dass es eine gab.
+  const grenze = v.grenzen?.gesamt || null;
+  ziel.append(fussZeile(stueck ? `Heute · ${stueck}` : 'Heute',
+    grenze ? `${geld(v.dollar)} / ${geld(grenze)}` : geld(v.dollar), {
+      titel: grenze
+        ? `Was OpenRouter heute abgerechnet hat, gegen die Tagesgrenze von ${geld(grenze)}`
+        : 'Was OpenRouter heute tatsächlich abgerechnet hat — Bilder, Clips und Chat zusammen',
+      warnung: Boolean(grenze) && v.dollar >= grenze,
+    }));
 
   // Die Chat-Zeile erscheint nur, wenn heute wirklich geredet wurde. Sonst
   // stuende dauerhaft eine Null im Fuss, und drei Zeilen sollen es bleiben.
@@ -246,6 +256,59 @@ async function los() {
   zeigeAnbieter(start.anbieter, start.schluessel);
   zeigeVerbrauch(start.verbrauch);
   verdrahteStil(start.stil, start.standardStil, start.stilDatei);
+
+  // Die Sonderansichten zuerst anmelden: die Seitenleiste zeichnet ihre
+  // Reiter samt Zahl mit, und alles steht schon vor dem ersten Aufbau bereit.
+  //
+  // Nach dem Laden einer Vorlage zurueck auf den Bestand: das Motiv steht
+  // dann unten im Komponisten, und gleich soll man sehen, was dabei
+  // herauskommt. In der Vorlagen-Ansicht stehenzubleiben hiesse, das
+  // Ergebnis zu verpassen.
+  vorlagen.setzeDaten(start);
+  vorlagen.setzeLadeZiel((v) => {
+    erzeugen.ladeVorlage(v);
+    raster.zeigeBestand();
+  });
+  vorlagen.setzeAenderungsZiel(raster.lade);
+  raster.meldeAnsicht('vorlagen', {
+    label: 'Vorlagen',
+    symbol: '__vorlagen__',
+    hinweis: 'Gespeicherte Läufe — anklicken lädt sie in den Komponisten',
+    zahl: () => vorlagen.anzahl(),
+    lade: vorlagen.lade,
+    zeichne: vorlagen.zeichne,
+  });
+
+  // Ueber den Einstellungen: die Regie betrifft den Assistenten, nicht das
+  // Geld. Beides gehoert nach unten, weil man beides selten anfasst.
+  regie.setzeDaten(start);
+  raster.meldeAnsicht('regie', {
+    label: 'Regie',
+    symbol: '__regie__',
+    titel: 'Regie',
+    platz: 'unten',
+    hinweis: 'Was der Assistent über gute Prompts weiß',
+    lade: regie.lade,
+    zeichne: regie.zeichne,
+  });
+
+  einstellungen.setzeDaten(start);
+  // Eine geaenderte Grenze aendert sofort, was im Fuss der Leiste steht.
+  einstellungen.setzeAenderungsZiel(async () => {
+    zeigeVerbrauch((await api.grenzen()).verbrauch);
+  });
+  // Ganz nach unten, direkt ueber Guthaben und Verbrauch: die Einstellungen
+  // sind nichts, womit man arbeitet, sondern etwas, das man selten anfasst -
+  // und sie gehoeren thematisch zu den Zahlen darunter.
+  raster.meldeAnsicht('einstellungen', {
+    label: 'Einstellungen',
+    symbol: '__einstellungen__',
+    titel: 'Einstellungen',
+    platz: 'unten',
+    hinweis: 'Tagesgrenzen — was höchstens ausgegeben werden darf',
+    lade: einstellungen.lade,
+    zeichne: einstellungen.zeichne,
+  });
 
   raster.baueOrdnerListe(start.ordner, start.zaehlung);
   raster.setzeKlickZiel(detail.zeige);

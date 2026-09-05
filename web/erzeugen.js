@@ -7,6 +7,7 @@ import { api } from './api.js';
 import { baueAuswahl } from './auswahl.js';
 import { hole, merke } from './merker.js';
 import * as referenz from './referenz.js';
+import * as vorlagen from './vorlagen.js';
 
 let beiFertig = () => {};
 let verbrauchZeigen = () => {};
@@ -14,7 +15,23 @@ let verbrauchZeigen = () => {};
 const el = (id) => document.getElementById(id);
 
 /** Aktueller Stand der Regler. */
-const regler = { art: null, modell: null, format: null, anzahl: null };
+const regler = {
+  art: null, modell: null, format: null, anzahl: null,
+  dauer: null, aufloesung: null,
+};
+
+/** Die Formate, wie sie der Server kennt - fuers Laden einer Vorlage. */
+let formatKatalog = [];
+
+/**
+ * Der letzte Lauf, der wirklich durchgegangen ist.
+ *
+ * Bewusst nicht der aktuelle Stand der Regler: zwischen dem Lauf und dem
+ * Klick auf "Als Vorlage" kann man am Modell gedreht haben. Eine Vorlage
+ * soll den Zustand festhalten, aus dem das Bild entstanden ist - sonst
+ * kommt beim naechsten Aufruf etwas anderes heraus.
+ */
+let letzterLauf = null;
 
 /** Modell-Infos nach id, um Referenz-Faehigkeit pruefen zu koennen. */
 const modellInfo = new Map();
@@ -108,7 +125,10 @@ function baueModellListe() {
   });
 }
 
-export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preise: p, gemessen: g, standard = {} }) {
+export function baueRegler({
+  formate, modelleBild, modelleVideo, anbieter, preise: p, gemessen: g,
+  standard = {}, videoDauern = [3, 5, 8, 10], videoAufloesungen = ['720p', '1080p'],
+}) {
   gemerkteModelle.bild = standard.modellBild || null;
   gemerkteModelle.video = standard.modellVideo || null;
   katalog.bild = modelleBild;
@@ -116,6 +136,7 @@ export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preis
   preise = p || preise;
   gemessen = g || {};
   anbieterStand = anbieter;
+  formatKatalog = formate;
 
   regler.art = baueAuswahl(el('artWahl'), {
     wert: art,
@@ -161,16 +182,53 @@ export function baueRegler({ formate, modelleBild, modelleVideo, anbieter, preis
     })),
     beiWahl: aktualisiereSchaetzung,
   });
+
+  // Dauer und Aufloesung stehen wie das Modell auf dem Server, nicht im
+  // Browser: der Assistent schlaegt einen Clip vor, aber wie lang und wie
+  // gross er wird, ist eine Einstellung des Menschen.
+  //
+  // Laenger heisst teurer, und zwar ungefaehr im Verhaeltnis. Das steht als
+  // Notiz dran, weil vor dem Lauf sonst niemand einen Preis sieht -
+  // OpenRouter nennt fuer Video vorab keinen.
+  regler.dauer = baueAuswahl(el('dauerWahl'), {
+    wert: String(standard.videoDauer || 5),
+    eintraege: videoDauern.map((d) => ({
+      wert: String(d),
+      text: `${d} s`,
+      notiz: d === 5 ? 'Standard' : null,
+    })),
+    beiWahl: (neu) => {
+      merkeAmServer('videoDauer', Number(neu));
+      aktualisiereSchaetzung();
+    },
+  });
+
+  regler.aufloesung = baueAuswahl(el('aufloesungWahl'), {
+    wert: standard.videoAufloesung || '1080p',
+    eintraege: videoAufloesungen.map((a) => ({
+      wert: a,
+      text: a,
+      notiz: a === '720p' ? 'schneller, billiger' : null,
+    })),
+    beiWahl: (neu) => {
+      merkeAmServer('videoAufloesung', neu);
+      aktualisiereSchaetzung();
+    },
+  });
 }
 
 /** Knopf, Platzhalter und Anzahl an die Gattung anpassen. */
 function zeigeGattung() {
   const video = art === 'video';
-  el('erzeugenKnopf').textContent = video ? 'Animieren' : 'Erzeugen';
+  el('erzeugenKnopf').setAttribute('aria-label', video ? 'Animieren' : 'Erzeugen');
+  el('erzeugenKnopf').title = video ? 'Animieren' : 'Erzeugen';
   el('motiv').placeholder = video
     ? 'Bewegung beschreiben, englisch — Standbild als Referenz wählen'
     : 'Motiv beschreiben, englisch …';
   el('anzahlWahl').hidden = video; // ein Clip pro Lauf, nie im Stapel
+  // Umgekehrt: Dauer und Aufloesung gibt es nur beim Clip.
+  el('dauerWahl').hidden = !video;
+  el('aufloesungWahl').hidden = !video;
 }
 
 function eingaben() {
@@ -182,22 +240,156 @@ function eingaben() {
     klein: el('klein').checked,
     mitStil: el('mitStil').checked,
     name: el('dateiname').value,
+    dauer: Number(regler.dauer.wert) || 5,
+    aufloesung: regler.aufloesung.wert,
     // Leer heisst ohne Referenz, gesetzt heisst mit. Kein zweiter Weg.
     referenz: referenz.pfad(),
   };
 }
 
+/** Namensvorschlag: der eigene Dateiname, sonst der Anfang des Motivs. */
+function vorschlagsName(lauf) {
+  const eigen = String(lauf.werte.name || '').trim();
+  if (eigen) return eigen.slice(0, 60);
+  return String(lauf.werte.motiv || '')
+    .replace(/\s+/g, ' ').trim().split(' ').slice(0, 5).join(' ')
+    .slice(0, 60);
+}
+
+/**
+ * "Als Vorlage" - erscheint im Hinweis, sobald ein Lauf durch ist.
+ *
+ * Genau dann sieht man, ob es etwas geworden ist. Ein Knopf, der immer da
+ * ist, wird zu einem Knopf, den man nie drueckt.
+ */
+function vorlageKnopf() {
+  const knopf = document.createElement('button');
+  knopf.type = 'button';
+  knopf.className = 'neben klein';
+  knopf.textContent = 'Als Vorlage';
+  knopf.title = 'Motiv, Modell, Format und Referenz dieses Laufs aufbewahren';
+
+  knopf.addEventListener('click', () => {
+    const lauf = letzterLauf;
+    if (!lauf) return;
+    knopf.replaceWith(vorlagen.benennung(vorschlagsName(lauf), async (name) => {
+      const v = await vorlagen.sichere({
+        name,
+        art: lauf.art,
+        motiv: lauf.werte.motiv,
+        modell: lauf.werte.modell,
+        formatId: lauf.werte.formatId,
+        anzahl: lauf.werte.anzahl,
+        klein: lauf.werte.klein,
+        mitStil: lauf.werte.mitStil,
+        dateiname: lauf.werte.name,
+        dauer: lauf.werte.dauer,
+        aufloesung: lauf.werte.aufloesung,
+        referenz: lauf.werte.referenz,
+        miniatur: lauf.datei,
+      });
+      return `„${v.name}“ liegt in den Vorlagen.`;
+    }));
+  });
+  return knopf;
+}
+
 function hinweis(text, gut = false) {
   const h = el('hinweis');
-  if (!text) { h.hidden = true; return; }
+  if (!text) { h.hidden = true; h.replaceChildren(); return; }
   h.hidden = false;
-  h.textContent = text;
+  h.replaceChildren(document.createTextNode(text));
   h.classList.toggle('gut', gut);
+  if (gut && letzterLauf) h.append(vorlageKnopf());
+}
+
+/**
+ * Eine Vorlage in den Komponisten laden.
+ *
+ * Fuellt die Felder und rechnet die Schaetzung neu - mehr nicht. Erzeugt
+ * wird weiterhin nur auf Klick, hier wie ueberall.
+ *
+ * Was seit dem Speichern verschwunden ist (Modell aus dem Katalog,
+ * Referenzbild von der Platte), wird uebersprungen und gesagt. Der Rest
+ * laedt trotzdem: eine halbe Vorlage ist mehr wert als eine Fehlermeldung.
+ */
+export function ladeVorlage(v) {
+  const fehlt = [];
+
+  if (v.art !== art) {
+    art = v.art === 'video' ? 'video' : 'bild';
+    merke('art', art);
+    regler.art.setze(art);
+    baueModellListe();
+    zeigeGattung();
+  }
+
+  if (v.modell && katalog[art].some((m) => m.id === v.modell)) {
+    regler.modell.setze(v.modell);
+    gemerkteModelle[art] = v.modell;
+    merkeAmServer(art === 'video' ? 'modellVideo' : 'modellBild', v.modell);
+  } else if (v.modell) {
+    fehlt.push(`Modell „${v.modell}“ gibt es nicht mehr`);
+  }
+
+  if (v.formatId && formatKatalog.some((f) => f.id === v.formatId)) {
+    regler.format.setze(v.formatId);
+    merkeAmServer('formatId', v.formatId);
+  }
+
+  // Die Anzahl kommt mit: eine bewusst angeklickte Vorlage ist kein
+  // vergessener Regler von vorgestern, und der Preis steht sofort darunter.
+  const anzahl = String(v.anzahl || 1);
+  if (['1', '2', '3', '4', '6', '8'].includes(anzahl)) regler.anzahl.setze(anzahl);
+
+  // Ohne diese zwei kaeme aus einer Video-Vorlage ein anderer Clip heraus,
+  // als beim Speichern herausgekommen ist.
+  if (v.dauer) {
+    regler.dauer.setze(String(v.dauer));
+    merkeAmServer('videoDauer', Number(v.dauer));
+  }
+  if (v.aufloesung) {
+    regler.aufloesung.setze(v.aufloesung);
+    merkeAmServer('videoAufloesung', v.aufloesung);
+  }
+
+  el('klein').checked = Boolean(v.klein);
+  el('mitStil').checked = v.mitStil !== false;
+  merke('klein', el('klein').checked);
+  merke('mitStil', el('mitStil').checked);
+
+  el('dateiname').value = v.dateiname || '';
+
+  const feld = el('motiv');
+  feld.value = v.motiv || '';
+  feld.style.height = 'auto';
+  feld.style.height = `${Math.min(feld.scrollHeight, 180)}px`;
+
+  if (v.referenz && v.referenzDa) {
+    referenz.setze({ pfad: v.referenz, name: v.referenz.split('/').pop() });
+  } else {
+    referenz.leere();
+    if (v.referenz) fehlt.push('das Referenzbild liegt nicht mehr da');
+  }
+
+  // Abweichende Haken nicht hinter der zugeklappten Leiste verstecken -
+  // dieselbe Begruendung wie beim Start.
+  if (el('klein').checked || !el('mitStil').checked) {
+    el('mehr').hidden = false;
+    el('mehrKnopf').setAttribute('aria-expanded', 'true');
+  }
+
+  // Ein geladener Zustand ist kein Lauf. Sonst boete der Hinweis an, das
+  // Ergebnis von vorhin noch einmal als Vorlage zu sichern.
+  letzterLauf = null;
+  hinweis(fehlt.length ? `„${v.name}“ geladen — aber ${fehlt.join(' und ')}.` : '');
+  aktualisiereSchaetzung();
+  feld.focus();
 }
 
 export async function aktualisiereSchaetzung() {
   const feld = el('schaetzung');
-  const { modell, formatId, anzahl, klein } = eingaben();
+  const { modell, formatId, anzahl, klein, dauer, aufloesung } = eingaben();
 
   // Referenz gesetzt, aber Modell kann keine? Ehrlich sagen statt still
   // ignorieren.
@@ -208,11 +400,12 @@ export async function aktualisiereSchaetzung() {
     return;
   }
 
-  // Video: OpenRouter nennt vorab keinen Preis. Nichts behaupten.
+  // Video: OpenRouter nennt vorab keinen Preis. Nichts behaupten - aber
+  // sagen, was eingestellt ist, damit man vor dem teuersten Klick der App
+  // wenigstens Dauer und Groesse schwarz auf weiss sieht.
   if (art === 'video') {
-    feld.textContent = referenz.pfad()
-      ? 'Clip aus dem gewählten Standbild · Preis erst nach dem Lauf bekannt'
-      : 'Text-zu-Video · Preis erst nach dem Lauf bekannt';
+    const woher = referenz.pfad() ? 'Clip aus dem gewählten Standbild' : 'Text-zu-Video';
+    feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · Preis erst nach dem Lauf bekannt`;
     feld.classList.remove('warnung');
     return;
   }
@@ -257,6 +450,9 @@ async function erzeugen() {
   const video = art === 'video';
   knopf.disabled = true;
   knopf.textContent = video ? 'Animiert … (dauert Minuten)' : 'Erzeugt …';
+  // Der vorige Lauf ist erledigt - sein Vorlagen-Knopf darf nicht stehen
+  // bleiben und hinterher den falschen Zustand sichern.
+  letzterLauf = null;
   hinweis('');
 
   try {
@@ -265,10 +461,13 @@ async function erzeugen() {
         motiv: werte.motiv,
         modell: werte.modell,
         formatId: werte.formatId,
+        dauer: werte.dauer,
+        aufloesung: werte.aufloesung,
         quellBild: werte.referenz,
         name: werte.name,
       });
       verbrauchZeigen(e.verbrauch);
+      letzterLauf = { art: 'video', werte, datei: e.erzeugt[0] || null };
       hinweis(
         `Clip fertig nach ${e.sekunden} s · Kosten ${e.dollar != null ? `${e.dollar.toFixed(3)} $` : 'unbekannt'}.`,
         true,
@@ -276,6 +475,7 @@ async function erzeugen() {
     } else {
       const e = await api.erzeugen(werte);
       verbrauchZeigen(e.verbrauch);
+      letzterLauf = { art: 'bild', werte, datei: e.erzeugt[0] || null };
       const preis = e.dollar ? ` · ${geld(e.dollar)}` : '';
       hinweis(`${e.erzeugt.length} Bild(er) erzeugt${preis}.`, true);
     }

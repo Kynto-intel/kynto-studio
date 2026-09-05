@@ -1,6 +1,7 @@
 // Detailansicht eines Bildes: Prompt, Herkunft, Favorit und Freigabe.
 
 import { api, dateiUrl } from './api.js';
+import * as vorlagen from './vorlagen.js';
 
 let beiAenderung = () => {};
 let referenzSetzen = () => {};
@@ -79,6 +80,8 @@ export function zeige(eintrag) {
   reihe(dl, 'Erstellt', erstellt ? new Date(erstellt).toLocaleString('de-DE') : '');
   reihe(dl, 'Modell', eintrag.modell);
   reihe(dl, 'Format', eintrag.format);
+  reihe(dl, 'Clip', eintrag.dauer ? `${eintrag.dauer} s · ${eintrag.aufloesung || ''}`.trim() : '');
+  reihe(dl, 'Verhältnis', eintrag.verhaeltnis || '');
   reihe(dl, 'Stil-Block', eintrag.mitStil === false ? 'aus' : (eintrag.stilBlock ? 'an' : ''));
   reihe(dl, 'Kosten', preis ? `${preis.toFixed(4)} USD` : '');
   reihe(dl, 'Referenz', eintrag.referenzBild || '');
@@ -150,6 +153,40 @@ export function zeige(eintrag) {
         el('motiv').value = eintrag.motiv;
         schliesse();
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    }),
+
+    // Das Sidecar weiss schon alles: Motiv, Modell, Format, Stil-Haken und
+    // Referenz. Damit wird jedes Bild, das laengst da ist, nachtraeglich
+    // zur Vorlage - man muss es nicht erst neu erzeugen.
+    knopf('Als Vorlage', {
+      neben: true,
+      gesperrt: !eintrag.motiv,
+      titel: eintrag.motiv
+        ? 'Diesen Lauf unter eigenem Namen aufbewahren'
+        : 'Ohne Motiv im Sidecar lässt sich nichts wiederholen',
+      beiKlick: (e) => {
+        e.currentTarget.replaceWith(vorlagen.benennung(
+          (eintrag.motiv || '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 5).join(' '),
+          async (name) => {
+            const v = await vorlagen.sichere({
+              name,
+              art: eintrag.art === 'video' ? 'video' : 'bild',
+              motiv: eintrag.motiv,
+              modell: eintrag.modell || null,
+              formatId: eintrag.format || null,
+              anzahl: 1,
+              klein: false,
+              mitStil: eintrag.mitStil !== false,
+              dauer: eintrag.dauer || null,
+              aufloesung: eintrag.aufloesung || null,
+              referenz: eintrag.referenzBild || null,
+              // Das Bild selbst ist die Miniatur - genau das kommt heraus.
+              miniatur: eintrag.pfad,
+            });
+            return `„${v.name}“ liegt in den Vorlagen.`;
+          },
+        ));
       },
     }),
   );

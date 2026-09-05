@@ -17,6 +17,7 @@ import * as modelleChat from './lib/modelle-chat.mjs';
 import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
+import * as regie from './lib/regie.mjs';
 import * as kosten from './lib/kosten.mjs';
 import * as format from './lib/format.mjs';
 import * as modelleBild from './lib/modelle-bild.mjs';
@@ -25,6 +26,7 @@ import * as openrouterBild from './lib/anbieter-openrouter-bild.mjs';
 import * as openrouterVideo from './lib/anbieter-openrouter-video.mjs';
 import * as preise from './lib/preise.mjs';
 import * as verlauf from './lib/verlauf.mjs';
+import * as vorlagen from './lib/vorlagen.mjs';
 import * as textebene from './lib/text.mjs';
 import * as schriften from './lib/schriften.mjs';
 
@@ -89,6 +91,7 @@ async function koerperLesen(req) {
  */
 function systemHinweis(siehtBilder = false) {
   const s = konfig.STANDARD;
+  const regieText = regie.ladeRegie();
   const ansehen = siehtBilder
     ? [
       '',
@@ -109,11 +112,16 @@ function systemHinweis(siehtBilder = false) {
     '',
     'ZWEI REGELN, die du nicht umgehen kannst:',
     '1. Du waehlst KEIN Modell. Womit gerendert wird, stellt der Mensch in der',
-    `   App ein. Aktuell: ${s.modellBild} fuer Bilder, ${s.modellVideo} fuer Video,`,
-    `   Format ${s.formatId}. Wenn jemand ein anderes Modell will, sage ihm, dass`,
-    '   er es unten in der Leiste umstellt - du kannst es nicht.',
+    `   App ein. Aktuell: ${s.modellBild} fuer Bilder, ${s.modellVideo} fuer Video`,
+    `   (${s.videoDauer} s, ${s.videoAufloesung}), Format ${s.formatId}. Wenn jemand etwas`,
+    '   anderes will, sage ihm, dass er es unten in der Leiste umstellt - du',
+    '   kannst es nicht.',
     '2. Erzeugen kostet echtes Geld. Du schlaegst es vor, der Mensch klickt.',
     '   Nenne vorher, was es kostet - `einstellung_lesen` sagt es dir.',
+    '   Dort stehen auch die Tagesgrenzen und was heute schon verbraucht ist.',
+    '   Ist eine Grenze erreicht, schlage nichts vor, was sie sprengt - sag',
+    '   es stattdessen. Der Server weist es ohnehin ab, aber ein Vorschlag,',
+    '   der gar nicht laufen kann, verschwendet nur die Zeit des Menschen.',
     '',
     'Zum Bildaufbau:',
     '- Motive auf Englisch, und NUR den Bildinhalt beschreiben. Palette, Licht',
@@ -125,6 +133,10 @@ function systemHinweis(siehtBilder = false) {
     '  laeuft lokal und kostet nichts.',
     '',
     ...ansehen,
+    // Das Handwerk steht in daten/regie.txt und wird bei jedem Zug frisch
+    // gelesen. Leer heisst: der Mensch will keine Hinweise - dann kommt
+    // auch keiner, statt ihm einen Standard aufzudraengen.
+    ...(regieText ? ['', regieText] : []),
     '',
     'Antworte auf Deutsch, kurz und direkt. Keine Aufzaehlung deiner Werkzeuge,',
     'keine Entschuldigungen. Wenn du etwas nicht kannst, sag es in einem Satz.',
@@ -156,13 +168,27 @@ async function fuehreGespraech(req, res) {
     connection: 'keep-alive',
   });
 
-  const nachrichten = Array.isArray(koerper.nachrichten) ? [...koerper.nachrichten] : [];
+  // Was aus dem Browser kommt, geht nie ungeprueft weiter. Der Browser
+  // haelt seinen eigenen Stand des Gespraechs, und der kann schief sein -
+  // eine einzige verwaiste Werkzeug-Antwort darin, und OpenRouter lehnt ab,
+  // bis jemand die Datei loescht.
+  const nachrichten = chatverlauf.heile(koerper.nachrichten);
   if (!nachrichten.length) {
     sende(res, { typ: 'fehler', text: 'Keine Nachricht angegeben.' });
     return res.end();
   }
   if (!modell) {
     sende(res, { typ: 'fehler', text: 'Kein Chat-Modell eingestellt.' });
+    return res.end();
+  }
+
+  // Auch Reden kostet. Ist das Assistenten-Limit erreicht, faengt der Zug
+  // gar nicht erst an - sonst waere die Bremse eine, die nur die teuren
+  // Sachen bremst und beim Dauerreden zusieht.
+  try {
+    kosten.pruefe('chat');
+  } catch (fehler) {
+    sende(res, { typ: 'fehler', text: fehler.message });
     return res.end();
   }
 
@@ -260,13 +286,17 @@ async function fuehreGespraech(req, res) {
     sende(res, { typ: 'fehler', text: fehler.message });
   }
 
-  // Erst speichern, dann melden: was der Browser bekommt, ist genau das,
-  // was auf der Platte steht - inklusive Kuerzung und Heilung.
-  const gespeichert = chatverlauf.schreibe(nachrichten);
+  // Gespeichert wird der geheilte Stand: ein Aufruf, den niemand mehr
+  // beantwortet, hat auf der Platte nichts verloren.
+  chatverlauf.schreibe(nachrichten);
 
+  // Der Browser bekommt bewusst eine andere Fassung - mit dem offenen
+  // Aufruf, falls gerade eine Vorschlagskarte steht. Er beantwortet ihn
+  // sofort. Schickte man ihm die gekuerzte, haenge er seine Antwort an
+  // einen Aufruf, den er nicht mehr hat, und das Gespraech waere hin.
   sende(res, {
     typ: 'fertig',
-    nachrichten: gespeichert,
+    nachrichten: chatverlauf.fuerBrowser(nachrichten),
     dollar: Number(dollarGesamt.toFixed(6)),
     verbrauch: kosten.stand(),
   });
@@ -290,9 +320,16 @@ const routen = {
     anbieter: anbieterBereit(),
     schluessel: schluesselStand(),
     standard: { ...konfig.STANDARD },
+    videoDauern: konfig.VIDEO_DAUERN,
+    videoAufloesungen: konfig.VIDEO_AUFLOESUNGEN,
+    grenzen: { ...konfig.GRENZEN },
     chatVerlauf: chatverlauf.lies(),
+    vorlagen: vorlagen.mitBestand(),
     stil: stil.ladeStil(),
     standardStil: stil.STANDARD_STIL,
+    regie: regie.ladeRegie(),
+    standardRegie: regie.STANDARD_REGIE,
+    regieDatei: regie.REGIE_DATEI,
     stilDatei: stil.STIL_DATEI,
     verbrauch: kosten.stand(),
     zaehlung: bibliothek.zaehlung(),
@@ -331,6 +368,13 @@ const routen = {
       dollar: proBild ? Number((proBild * anzahl).toFixed(4)) : null,
       masse: `${m.genW}x${m.genH}`,
       ziel: m.zielW ? `${m.zielW}x${m.zielH}` : 'roh',
+      // Was beim Clip herauskaeme. Steht hier mit drin, weil das die
+      // Frage ist, die diese Route beantwortet: was passiert, wenn ich
+      // jetzt drücke. Der Vorschlag im Chat zeigt es damit an.
+      video: {
+        dauer: konfig.STANDARD.videoDauer,
+        aufloesung: konfig.STANDARD.videoAufloesung,
+      },
       verbrauch: kosten.stand(),
     };
   },
@@ -349,6 +393,8 @@ const routen = {
     const formatId = koerper.formatId || konfig.STANDARD.formatId;
 
     if (!String(motiv).trim()) throw new Error('Kein Motiv angegeben.');
+    // Vor allem anderen: reicht das Tagesbudget ueberhaupt noch?
+    kosten.pruefe('bild');
     const wieViele = Math.min(Math.max(1, Number(anzahl) || 1), 10);
 
     const modellInfo = modelleBild.finde(modell);
@@ -396,6 +442,12 @@ const routen = {
         anbieter: modellInfo.anbieter, modell, format: formatId,
         erstellt: new Date().toISOString(),
         referenzBild: koerper.referenz || null,
+        // Nur eintragen, wenn das Modell das gewuenschte Verhaeltnis nicht
+        // konnte und ein anderes gerendert hat. Dann wurde beschnitten, und
+        // man soll es nachlesen koennen statt zu raten.
+        verhaeltnis: lauf.verhaeltnis !== lauf.verhaeltnisGewuenscht
+          ? `${lauf.verhaeltnis} statt ${lauf.verhaeltnisGewuenscht}`
+          : null,
         kosten: { dollar: lauf.kosten ?? null },
       });
 
@@ -608,6 +660,11 @@ const routen = {
     return { standard: speichereStandard(koerper) };
   },
 
+  'POST /api/regie': async (req) => {
+    const { text } = await koerperLesen(req);
+    return { regie: regie.speichereRegie(text) };
+  },
+
   'POST /api/stil': async (req) => {
     const { text } = await koerperLesen(req);
     const neu = stil.speichereStil(text);
@@ -618,6 +675,70 @@ const routen = {
       details: { stil: neu },
     });
     return { stil: neu };
+  },
+
+  // ------------------------------------------------------------- Grenzen
+
+  'GET /api/grenzen': async () => ({ grenzen: { ...konfig.GRENZEN }, verbrauch: kosten.stand() }),
+
+  'POST /api/grenzen': async (req) => {
+    const koerper = await koerperLesen(req);
+    const grenzen = konfig.speichereGrenzen(koerper);
+    const benennung = { gesamt: 'Gesamt', bild: 'Bild', video: 'Video', chat: 'Assistent' };
+    const gesetzt = Object.entries(grenzen)
+      .map(([k, v]) => `${benennung[k]} ${v ? `${v} $` : 'aus'}`)
+      .join(' · ');
+    verlauf.halteFest({
+      was: 'einstellung',
+      quelle: quelleVon(req),
+      text: `Tagesgrenzen geändert: ${gesetzt}`,
+      details: { grenzen },
+    });
+    return { grenzen, verbrauch: kosten.stand() };
+  },
+
+  // ------------------------------------------------------------- Vorlagen
+
+  'GET /api/vorlagen': async () => ({ vorlagen: vorlagen.mitBestand() }),
+
+  /**
+   * Vorlage anlegen oder aendern.
+   *
+   * Die beiden Pfade laufen hier durch absolut(), bevor irgendetwas
+   * geschrieben wird. Damit steht in vorlagen.json garantiert nichts, was
+   * ausserhalb der Wurzel zeigt - das Modul selbst prueft keine Pfade.
+   */
+  'POST /api/vorlage': async (req) => {
+    const koerper = await koerperLesen(req);
+    for (const feld of ['referenz', 'miniatur']) {
+      if (koerper[feld]) absolut(koerper[feld]);
+    }
+
+    const vorlage = vorlagen.sichere(koerper);
+    verlauf.halteFest({
+      was: 'vorlage',
+      quelle: quelleVon(req),
+      text: `Vorlage gespeichert: "${vorlage.name}"`,
+      details: {
+        name: vorlage.name, art: vorlage.art, modell: vorlage.modell,
+        formatId: vorlage.formatId, motiv: vorlage.motiv,
+        dateien: vorlage.miniatur ? [vorlage.miniatur] : [],
+      },
+    });
+    return { vorlage, vorlagen: vorlagen.mitBestand() };
+  },
+
+  /** Nur die Notiz verschwindet. Bilder und Clips bleiben, wo sie sind. */
+  'POST /api/vorlage-loeschen': async (req) => {
+    const { id } = await koerperLesen(req);
+    const weg = vorlagen.entferne(id);
+    verlauf.halteFest({
+      was: 'vorlage',
+      quelle: quelleVon(req),
+      text: `Vorlage gelöscht: "${weg.name}"`,
+      details: { name: weg.name, art: weg.art },
+    });
+    return { vorlagen: vorlagen.mitBestand() };
   },
 
   'POST /api/modelle-aktualisieren': async (req) => {
@@ -631,16 +752,20 @@ const routen = {
   /** Clip aus einem Bild. Laeuft asynchron und dauert Minuten. */
   'POST /api/animieren': async (req) => {
     const koerper = await koerperLesen(req);
-    const {
-      motiv = '', quellBild = null,
-      dauer = 5, aufloesung = '1080p', name = '',
-    } = koerper;
+    const { motiv = '', quellBild = null, name = '' } = koerper;
 
-    // Wie beim Bild: ohne Angabe gilt die Einstellung aus der App.
+    // Wie beim Bild: ohne Angabe gilt die Einstellung aus der App. Das
+    // betrifft auch Dauer und Aufloesung - der Assistent schlaegt einen
+    // Clip vor, wie lang und wie gross er wird, stellt der Mensch ein.
     const modell = koerper.modell || konfig.STANDARD.modellVideo;
     const formatId = koerper.formatId || 'story';
+    const dauer = konfig.VIDEO_DAUERN.includes(Number(koerper.dauer))
+      ? Number(koerper.dauer) : konfig.STANDARD.videoDauer;
+    const aufloesung = konfig.VIDEO_AUFLOESUNGEN.includes(koerper.aufloesung)
+      ? koerper.aufloesung : konfig.STANDARD.videoAufloesung;
 
     if (!String(motiv).trim()) throw new Error('Kein Bewegungs-Prompt angegeben.');
+    kosten.pruefe('video');
     const modellInfo = modelleVideo.finde(modell);
     if (!modellInfo) throw new Error(`Unbekanntes Videomodell: ${modell}`);
 
@@ -674,6 +799,10 @@ const routen = {
       prompt: motiv, motiv, anbieter: 'openrouter', modell, format: formatId,
       erstellt: new Date().toISOString(),
       referenzBild: quellBild || null,
+      // Ohne diese zwei laesst sich ein Clip spaeter nicht wiederholen -
+      // und genau das soll eine Vorlage aus der Detailansicht koennen.
+      dauer,
+      aufloesung,
       kosten: { dollar: lauf.kosten ?? null },
     });
 
@@ -682,9 +811,9 @@ const routen = {
     verlauf.halteFest({
       was: 'animiert',
       quelle: quelleVon(req),
-      text: `Clip · ${modellInfo.name} · "${motiv}"`,
+      text: `Clip · ${modellInfo.name} · ${dauer} s · ${aufloesung} · "${motiv}"`,
       details: {
-        motiv, modell, modellName: modellInfo.name, formatId,
+        motiv, modell, modellName: modellInfo.name, formatId, dauer, aufloesung,
         quellBild: quellBild || null, dollar: lauf.kosten, sekunden: lauf.dauer,
         dateien: [relativ(datei)],
       },
@@ -774,6 +903,7 @@ const server = http.createServer(async (req, res) => {
 // Stil-Datei beim Start anlegen, damit sie immer existiert und auch
 // ausserhalb der App bearbeitet werden kann.
 stil.stelleDateiSicher();
+regie.stelleDateiSicher();
 
 server.listen(PORT, HOST, () => {
   const bereit = anbieterBereit();

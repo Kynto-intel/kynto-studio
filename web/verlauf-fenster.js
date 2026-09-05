@@ -17,7 +17,7 @@ const BEREICHE = [
   { id: 'bilder', label: 'Bilder', arten: ['erzeugt', 'text'] },
   { id: 'videos', label: 'Videos', arten: ['animiert'] },
   { id: 'chat', label: 'Chat', arten: [] },
-  { id: 'sonstiges', label: 'Sonstiges', arten: ['umbenannt', 'stil', 'einstellung'] },
+  { id: 'sonstiges', label: 'Sonstiges', arten: ['umbenannt', 'stil', 'einstellung', 'vorlage'] },
 ];
 
 const BESCHRIFTUNG = {
@@ -27,6 +27,7 @@ const BESCHRIFTUNG = {
   umbenannt: 'Umbenannt',
   stil: 'Stil-Block geändert',
   einstellung: 'Einstellung geändert',
+  vorlage: 'Vorlage',
 };
 
 let eintraege = [];

@@ -7,6 +7,13 @@ const PFADE = {
   pin: 'M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
   text: 'M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M14 3v5h5 M8 13h8 M8 17h6',
   ordner: 'M3 6a1 1 0 0 1 1-1h5l2 2.5h8a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z',
+  // Zwei Blaetter uebereinander - eine Vorlage ist ein Bild, das man
+  // beliebig oft neu abzieht.
+  vorlagen: 'M8 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M4 7v12a1 1 0 0 0 1 1h10',
+  // Zwei Schieberegler - was hier steht, stellt man ein.
+  einstellungen: 'M4 8h10 M18 8h2 M4 16h4 M12 16h8 M16 6v4 M10 14v4',
+  // Filmklappe - hier steht, wie eine Aufnahme gebaut wird.
+  regie: 'M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 9l1.5-4.5 17 2.5L20 9 M8 4.8L6.6 9 M13 5.5L11.6 9.4 M17.6 6.2L16.2 9.6',
 };
 
 /** Welches Symbol gehoert zu welchem Ordner? */
@@ -15,6 +22,11 @@ const ZUORDNUNG = {
   pinterest: 'pin',
   blog: 'text',
   assets: 'ordner',
+  // Keine Ordner, sondern die Sonderansichten - deshalb Namen, die kein
+  // echter Ordner tragen kann.
+  __vorlagen__: 'vorlagen',
+  __einstellungen__: 'einstellungen',
+  __regie__: 'regie',
 };
 
 export function symbolFuer(ordnerId) {

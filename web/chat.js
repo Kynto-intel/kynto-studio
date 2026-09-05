@@ -148,7 +148,18 @@ async function vorschlagKarte(id, name, argumente) {
       ja.textContent = 'Erzeugen';
     }
   } else {
-    zeile.textContent = 'Clip · Preis erst nach dem Lauf bekannt · rund 20× ein Bild';
+    // Auch beim Clip nicht dem Modell glauben, sondern nachfragen, was in
+    // der App eingestellt ist - gerendert wird das, nicht was im Gespraech
+    // steht. Preis nennt OpenRouter fuer Video vorab nicht.
+    let masse = '';
+    try {
+      const s = await api.schaetzung({});
+      if (s.video) masse = ` · ${s.video.dauer} s · ${s.video.aufloesung}`;
+    } catch {
+      // Ohne die Angabe steht eben nur der Rest da - kein Grund, den
+      // Vorschlag deshalb scheitern zu lassen.
+    }
+    zeile.textContent = `Clip${masse} · Preis erst nach dem Lauf bekannt · rund 20× ein Bild`;
     ja.textContent = 'Clip erzeugen';
   }
   ja.disabled = false;
@@ -305,15 +316,6 @@ export function verdrahte() {
   feld.addEventListener('input', () => {
     feld.style.height = 'auto';
     feld.style.height = `${Math.min(feld.scrollHeight, 140)}px`;
-  });
-
-  el('chatLeeren').addEventListener('click', async () => {
-    nachrichten = [];
-    gespraechDollar = 0;
-    zeigeKosten(0);
-    el('chatVerlauf').replaceChildren();
-    await api.chatLeeren().catch(() => {});
-    begruessung();
   });
 
   const auf = (zeigen) => {

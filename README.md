@@ -54,12 +54,35 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   searches your library, reads your style block, burns text onto images,
   and **actually looks at the pictures** when the chosen model can see them,
   so it tells you the hands came out wrong instead of guessing.
+  A **Regie** tab holds what it knows about the craft — how a prompt is
+  built, and that a clip tolerates exactly one motion while everything else
+  must be told to hold still. Plain text, edit it whenever it stops being
+  true.
   When it wants to generate something it **proposes**, showing subject,
   format and price — you click. Paid tools have no execute path on the
   server at all, so a chatty model cannot spend your money. It never picks
   a model either: what you set in the app is what renders. Any of
   OpenRouter's ~360 tool-capable text models can run it; a turn costs about
   a third of a cent, and the conversation is kept in `daten/chat.json`.
+- **Daily spending limits** — four of them: everything together, images,
+  video, and the assistant. Once a limit is reached nothing more is
+  generated, whether the click came from you, from the assistant, or from a
+  script over the API — there is one check and all three paths go through
+  it. Leave a field empty for no limit. Honest about what it cannot do: the
+  check runs against what has already been billed, so a single run can still
+  cross the line — a price is only known afterwards, and for video not even
+  then. It stops the next run, not the running one.
+- **Templates** — a run that worked is worth keeping. Save it under a name
+  of your own and it holds everything that made it: prompt, model, format,
+  count, the switches and the reference image, with the resulting picture as
+  its thumbnail, so you see what comes out instead of only what went in.
+  Works for video the same way. They sit as a tab under the folders and fill
+  the same grid as your pictures — no window to open and close. One click
+  puts it all back in the composer and generates **nothing**; you still
+  press the button. Save from the hint right after a run, or from the detail
+  view of any picture that is already there, because the sidecar knows the
+  same things. If a file has gone missing since, the template still loads
+  and says what it could not restore.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.
@@ -199,6 +222,13 @@ the single most useful contribution right now.
 (async job, polling, download) was built and its error paths verified, but it
 has seen only a handful of successful runs. Treat it as beta.
 
+Duration and resolution are picked from fixed lists (3/5/8/10 seconds,
+720p/1080p) because OpenRouter does not publish what each model accepts — no
+video model names its durations in the model list, and the descriptions are
+truncated. If a model rejects a value, its own message says which ones it
+takes. There is no automatic correction here, unlike aspect ratio: verifying
+it would mean rendering clips to find out, and clips are the expensive part.
+
 **Fonts come from your system.** The app lists fonts that are installed on
 your machine; it does not ship any. If a font in the list is missing, it
 drops out of the menu rather than silently substituting.
@@ -250,11 +280,14 @@ kynto-studio/
 ├── skripte/                   PowerShell helpers
 │   ├── resize.ps1             crop and scale
 │   └── text.ps1               render text onto an image
+├── aenderungen/               one note per change: what, why, how tested
 ├── web/                       the interface, no build step
 └── daten/                     runtime data, git-ignored
     ├── verlauf.json           activity log with full prompts
     ├── verbrauch.json         spending and measured model prices
-    └── stil-block.txt         your style block, plain text
+    ├── vorlagen.json          your saved runs
+    ├── stil-block.txt         your style block, plain text
+    └── regie.txt              what the assistant knows about the craft
 ```
 
 `daten/` is created on first start. Delete it and the app starts fresh —

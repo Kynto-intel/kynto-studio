@@ -9,6 +9,12 @@
 </head>
 <body>
 
+<script>
+  try {
+    if (localStorage.getItem('kynto-leiste-zu') === '1') document.body.classList.add('zu');
+  } catch {}
+</script>
+
 <!-- Liegt fest oben links. Bleibt beim Ein- und Ausklappen an derselben
      Stelle, egal ob die Seitenleiste offen ist oder nicht. -->
 <button id="burger" class="burger" type="button" aria-expanded="true" aria-label="Menü ein- und ausklappen">
@@ -21,11 +27,22 @@
     <span>Studio</span>
   </div>
 
+  <!-- Oben stehen die Ordner des Nutzers. -->
   <nav class="ordner" id="ordnerListe"></nav>
 
   <button class="ordner-einstellen" id="ordnerKnopf" type="button">
     Ordner einstellen
   </button>
+
+  <!-- Ab hier gehoert alles der App, nicht dem Nutzer: Ansichten, die es
+       nur im Studio gibt. "Ordner einstellen" ist die Grenze. -->
+  <nav class="ordner system" id="systemListe"></nav>
+
+  <!-- Was zur Bedienung der App selbst gehoert, steht ganz unten - direkt
+       ueber der Linie mit Guthaben und Verbrauch. Diese Liste traegt das
+       `margin-top: auto`, das den ganzen Fuss nach unten drueckt; leer ist
+       sie einfach null Pixel hoch. -->
+  <nav class="ordner system" id="untenListe"></nav>
 
   <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
        Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
@@ -73,7 +90,6 @@
   <div class="chat-kopf">
     <strong>Assistent</strong>
     <div class="chat-kopf-knoepfe">
-      <button id="chatLeeren" class="chat-klein" type="button" title="Gespräch verwerfen">Neu</button>
       <button id="chatZu" class="chat-klein" type="button" aria-label="Chat schließen">×</button>
     </div>
   </div>
@@ -83,7 +99,11 @@
   <div class="chat-eingabe">
     <textarea id="chatFeld" rows="1" placeholder="Fragen oder Motiv beschreiben …"
               autocomplete="off"></textarea>
-    <button id="chatSenden" class="fest" type="button">Senden</button>
+    <button id="chatSenden" class="fest" type="button" aria-label="Nachricht senden" title="Nachricht senden">
+      <svg class="sende-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2Z"></path>
+      </svg>
+    </button>
   </div>
 
   <!-- Gleicher Aufbau wie unter dem Komponisten: Kosten links, Auswahl
@@ -143,7 +163,11 @@
     <div class="komponist">
       <button id="mehrKnopf" class="rund" type="button" title="Mehr Einstellungen">+</button>
       <textarea id="motiv" rows="1" placeholder="Motiv beschreiben, englisch …"></textarea>
-      <button id="erzeugenKnopf" class="senden" type="button">Erzeugen</button>
+      <button id="erzeugenKnopf" class="senden" type="button" aria-label="Erzeugen" title="Erzeugen">
+        <svg class="sende-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2Z"></path>
+        </svg>
+      </button>
     </div>
 
     <div class="komponist-fuss">
@@ -153,6 +177,9 @@
         <div id="modellWahl"></div>
         <div id="formatWahl"></div>
         <div id="anzahlWahl"></div>
+        <!-- Nur bei Video sichtbar, dafuer verschwindet die Anzahl. -->
+        <div id="dauerWahl" hidden></div>
+        <div id="aufloesungWahl" hidden></div>
       </div>
     </div>
 

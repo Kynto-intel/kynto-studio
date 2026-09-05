@@ -36,10 +36,57 @@ let nurFavoriten = false;
 let beiKlick = () => {};
 let ordnerDefs = [];
 
+/**
+ * Was gerade im Raster steht: der Bestand oder eine der gemeldeten
+ * Sonderansichten (Vorlagen, Einstellungen).
+ *
+ * Bewusst Ansichten und keine Fenster. Ein Dialog ueber der Galerie waere
+ * ein zweiter Ort, an dem etwas steht - und man muesste ihn wieder zumachen,
+ * bevor man weiterarbeitet.
+ */
+let ansicht = 'bestand';
+
+/** Die letzten Ordner-Zaehler, damit sie in einer Sonderansicht stehenbleiben. */
+let letzteZaehlung = {};
+
+/**
+ * Sonderansichten, von studio.js angemeldet.
+ *
+ * Jede bringt mit, wie sie heisst, welches Symbol sie traegt, was sie ins
+ * Raster zeichnet und - optional - welche Zahl am Reiter steht. Dieses
+ * Modul kennt weder Vorlagen noch Einstellungen; es haelt nur die Liste.
+ */
+const ansichten = new Map();
+
 export function setzeKlickZiel(fn) { beiKlick = fn; }
+
+/**
+ * @param {string} id
+ * @param {{label: string, symbol: string, titel?: string,
+ *          platz?: 'oben'|'unten',
+ *          zahl?: () => number|string|null,
+ *          lade?: () => Promise<void>, zeichne: (ziel: HTMLElement) => void,
+ *          hinweis?: string}} def
+ *
+ * `platz` sagt, wo der Reiter steht: "oben" gleich unter "Ordner
+ * einstellen", "unten" ganz am Ende, direkt ueber der Linie mit Guthaben
+ * und Verbrauch. Der Unterschied ist keine Kosmetik - oben steht, womit man
+ * arbeitet, unten steht, was die App selbst betrifft.
+ */
+export function meldeAnsicht(id, def) {
+  ansichten.set(id, def);
+}
+
+/** Zurueck auf den Bestand - etwa nachdem eine Vorlage geladen wurde. */
+export function zeigeBestand() {
+  if (ansicht === 'bestand') return Promise.resolve();
+  ansicht = 'bestand';
+  return lade();
+}
 
 export function baueOrdnerListe(ordner, zaehlung) {
   ordnerDefs = ordner;
+  letzteZaehlung = zaehlung || letzteZaehlung;
   const liste = document.getElementById('ordnerListe');
   liste.replaceChildren();
 
@@ -50,35 +97,74 @@ export function baueOrdnerListe(ordner, zaehlung) {
     hinweis.className = 'ordner-leer';
     hinweis.textContent = 'Noch kein Ordner. Unten anlegen, dann erscheint hier die Auswahl.';
     liste.append(hinweis);
-    return;
+  } else {
+    const eintraege = [{ id: null, label: 'Alles' }, ...ordner];
+    for (const o of eintraege) {
+      const knopf = document.createElement('button');
+      knopf.type = 'button';
+      knopf.setAttribute('aria-current', String(ansicht === 'bestand' && o.id === aktuellerOrdner));
+
+      // Symbol bleibt auch im schmalen Modus sichtbar, Text und Zahl nicht.
+      const symbol = symbolFuer(o.id);
+
+      const name = document.createElement('span');
+      name.className = 'ordner-name';
+      name.textContent = o.label;
+      knopf.title = o.hinweis ? `${o.label} — ${o.hinweis}` : o.label;
+
+      const zahl = document.createElement('span');
+      zahl.className = 'zahl';
+      zahl.textContent = o.id
+        ? (letzteZaehlung[o.id] ?? 0)
+        : Object.values(letzteZaehlung).reduce((a, b) => a + b, 0);
+
+      knopf.append(symbol, name, zahl);
+      knopf.addEventListener('click', () => {
+        ansicht = 'bestand';
+        aktuellerOrdner = o.id;
+        lade();
+      });
+      liste.append(knopf);
+    }
   }
 
-  const eintraege = [{ id: null, label: 'Alles' }, ...ordner];
-  for (const o of eintraege) {
+  // Die Sonderansichten stehen UNTER "Ordner einstellen", in einer eigenen
+  // Liste. Der Schnitt ist Absicht: oben die Ordner des Nutzers, darunter
+  // alles, was es nur im Studio gibt. Aussehen und Bedienung sind gleich -
+  // derselbe Griff, nur eine andere Sorte Sache.
+  const plaetze = {
+    oben: document.getElementById('systemListe'),
+    unten: document.getElementById('untenListe'),
+  };
+  for (const el of Object.values(plaetze)) el.replaceChildren();
+
+  for (const [id, def] of ansichten) {
     const knopf = document.createElement('button');
     knopf.type = 'button';
-    knopf.setAttribute('aria-current', String(o.id === aktuellerOrdner));
-
-    // Symbol bleibt auch im schmalen Modus sichtbar, Text und Zahl nicht.
-    const symbol = symbolFuer(o.id);
+    knopf.className = 'system-reiter';
+    knopf.setAttribute('aria-current', String(ansicht === id));
+    if (def.hinweis) knopf.title = def.hinweis;
 
     const name = document.createElement('span');
     name.className = 'ordner-name';
-    name.textContent = o.label;
-    knopf.title = o.hinweis ? `${o.label} — ${o.hinweis}` : o.label;
+    name.textContent = def.label;
+    knopf.append(symbolFuer(def.symbol), name);
 
-    const zahl = document.createElement('span');
-    zahl.className = 'zahl';
-    zahl.textContent = o.id
-      ? (zaehlung[o.id] ?? 0)
-      : Object.values(zaehlung).reduce((a, b) => a + b, 0);
+    // Eine Zahl nur, wo es etwas zu zaehlen gibt. Bei den Einstellungen
+    // stuende dort sonst dauerhaft eine Null.
+    const wert = def.zahl?.();
+    if (wert !== null && wert !== undefined) {
+      const zahl = document.createElement('span');
+      zahl.className = 'zahl';
+      zahl.textContent = wert;
+      knopf.append(zahl);
+    }
 
-    knopf.append(symbol, name, zahl);
     knopf.addEventListener('click', () => {
-      aktuellerOrdner = o.id;
+      ansicht = id;
       lade();
     });
-    liste.append(knopf);
+    (plaetze[def.platz] || plaetze.oben).append(knopf);
   }
 }
 
@@ -294,6 +380,21 @@ function leerText() {
 
 export async function lade() {
   const ziel = rasterEl();
+
+  // Sonderansicht: eigener Inhalt, aber dasselbe Raster. Suche,
+  // Favoriten-Haken und die Bild/Video-Reiter gehoeren zum Bestand und
+  // bleiben hier aussen vor - sie haetten nichts zu filtern.
+  const sonder = ansichten.get(ansicht);
+  if (sonder) {
+    titelEl().textContent = sonder.titel || sonder.label;
+    document.getElementById('artReiter').hidden = true;
+    await sonder.lade?.();
+    baueOrdnerListe(ordnerDefs, letzteZaehlung);
+    ziel.replaceChildren();
+    sonder.zeichne(ziel);
+    return;
+  }
+
   const def = ordnerDefs.find((o) => o.id === aktuellerOrdner);
   const artName = { bild: 'Bilder', video: 'Videos' }[aktuelleArt];
   titelEl().textContent = [def ? def.label : 'Bestand', artName]
@@ -330,6 +431,9 @@ export async function lade() {
 
 export function setzeFavoritenFilter(an) {
   nurFavoriten = an;
+  // Filtern heisst: der Bestand ist gemeint. In der Vorlagen-Ansicht haette
+  // der Haken nichts zu filtern und saehe aus, als sei er kaputt.
+  ansicht = 'bestand';
   return lade();
 }
 
@@ -349,8 +453,11 @@ export function verdrahte() {
   const uebernehmen = () => {
     clearTimeout(warte);
     const neu = feld.value.trim();
-    if (neu === suchwort) return;
+    if (neu === suchwort && ansicht === 'bestand') return;
     suchwort = neu;
+    // Gesucht wird im Bestand. Wer in den Vorlagen steht und zu tippen
+    // anfaengt, meint die Bilder - sonst passiert auf den Tastendruck nichts.
+    ansicht = 'bestand';
     lade();
   };
 
