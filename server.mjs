@@ -1,5 +1,10 @@
 // Kynto Studio - HTTP-Server.
-// Ausschliesslich Routing. Jede Fachlogik liegt in lib/.
+//
+// Ausschliesslich Routing: Anfrage aufmachen, an ein lib-Modul weiterreichen,
+// Antwort zurueckschreiben. Keine Ausnahme mehr - die drei dicken Bloecke,
+// die hier lange lagen (Bild erzeugen, Clip erzeugen, Gespraechsschleife),
+// stehen jetzt in lib/auftrag-bild, lib/auftrag-video und lib/gespraech.
+//
 // Bindet nur an 127.0.0.1, damit nichts ins Netzwerk faellt.
 
 import http from 'node:http';
@@ -8,14 +13,15 @@ import path from 'node:path';
 import * as konfig from './lib/konfig.mjs';
 import { PORT, HOST, APP, anbieterBereit, schluesselStand, speichereStandard } from './lib/konfig.mjs';
 import {
-  absolut, relativ, stelleOrdnerSicher, ordnerNach, saubererName, pruefeInnerhalb,
+  absolut, relativ, stelleOrdnerSicher, ordnerNach, pruefeInnerhalb,
 } from './lib/pfade.mjs';
 import * as bibliothek from './lib/bibliothek.mjs';
-import * as chat from './lib/anbieter-openrouter-chat.mjs';
+import * as auftragBild from './lib/auftrag-bild.mjs';
+import * as auftragVideo from './lib/auftrag-video.mjs';
+import * as gespraech from './lib/gespraech.mjs';
 import * as chatverlauf from './lib/chatverlauf.mjs';
 import * as modelleChat from './lib/modelle-chat.mjs';
 import * as ollama from './lib/ollama.mjs';
-import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
 import * as regie from './lib/regie.mjs';
@@ -23,8 +29,8 @@ import * as kosten from './lib/kosten.mjs';
 import * as format from './lib/format.mjs';
 import * as modelleBild from './lib/modelle-bild.mjs';
 import * as modelleVideo from './lib/modelle-video.mjs';
+// Nur noch wegen des Guthabenstands - erzeugt wird hier nichts mehr.
 import * as openrouterBild from './lib/anbieter-openrouter-bild.mjs';
-import * as openrouterVideo from './lib/anbieter-openrouter-video.mjs';
 import * as preise from './lib/preise.mjs';
 import * as verlauf from './lib/verlauf.mjs';
 import * as vorlagen from './lib/vorlagen.mjs';
@@ -78,269 +84,6 @@ async function koerperLesen(req) {
   } catch {
     throw new Error('Ungueltiges JSON im Anfrage-Koerper');
   }
-}
-
-// ---------------------------------------------------------------- Gespraech
-
-/**
- * Was das Modell ueber sich und die App wissen muss.
- *
- * Die zwei harten Regeln stehen absichtlich ganz oben und doppelt: einmal
- * hier, einmal in den Werkzeugbeschreibungen. Ein Modell, das sie ueberliest,
- * kann trotzdem nichts anrichten - `werkzeuge.fuehreAus` weigert sich - aber
- * es soll gar nicht erst danach fragen.
- */
-function systemHinweis(siehtBilder = false) {
-  const s = konfig.STANDARD;
-  const regieText = regie.ladeRegie();
-  const ansehen = siehtBilder
-    ? [
-      '',
-      'Du kannst Bilder wirklich ansehen: bild_ansehen legt dir eines vor.',
-      'Nutze es, bevor du etwas ueber ein Bild behauptest - nach dem Erzeugen,',
-      'und bevor du Text daraufsetzt. Sag was du siehst, auch wenn es nicht',
-      'passt: schiefe Haende, unlesbare Schrift, falsche Stimmung. Ein ehrliches',
-      '"das ist nichts geworden" spart ein zweites Bild.',
-    ]
-    : [
-      '',
-      'Das eingestellte Modell kann keine Bilder ansehen. Behaupte deshalb',
-      'nichts ueber den Inhalt eines Bildes - du kennst nur Dateiname, Motiv',
-      'und Prompt aus der Bibliothek.',
-    ];
-  return [
-    'Du bist der Assistent in Kynto Studio, einer lokalen App fuer Bilder und Videos.',
-    '',
-    'ZWEI REGELN, die du nicht umgehen kannst:',
-    '1. Du waehlst KEIN Modell. Womit gerendert wird, stellt der Mensch in der',
-    `   App ein. Aktuell: ${s.modellBild} fuer Bilder, ${s.modellVideo} fuer Video`,
-    `   (${s.videoDauer} s, ${s.videoAufloesung}), Format ${s.formatId}. Wenn jemand etwas`,
-    '   anderes will, sage ihm, dass er es unten in der Leiste umstellt - du',
-    '   kannst es nicht.',
-    '2. Erzeugen kostet echtes Geld. Du schlaegst es vor, der Mensch klickt.',
-    '   Nenne vorher, was es kostet - `einstellung_lesen` sagt es dir.',
-    '   Dort stehen auch die Tagesgrenzen und was heute schon verbraucht ist.',
-    '   Ist eine Grenze erreicht, schlage nichts vor, was sie sprengt - sag',
-    '   es stattdessen. Der Server weist es ohnehin ab, aber ein Vorschlag,',
-    '   der gar nicht laufen kann, verschwendet nur die Zeit des Menschen.',
-    '',
-    // Ohne diese Zuordnung raten schwaechere Modelle: sie antworten aus dem
-    // Nichts statt nachzuschlagen. Gemessen 6.9.2026 - gemma4:12b beantwortet
-    // "wie viele Bilder habe ich" ohne einen einzigen Werkzeug-Aufruf, rein
-    // erfunden. Die Werkzeugbeschreibungen allein reichen dafuer nicht; es
-    // muss dastehen, WANN etwas dran ist.
-    'WANN DU WAS AUFRUFST - rate nie, schlag nach:',
-    '- Frage nach Bestand, Anzahl, "habe ich", "welche Bilder"',
-    '    -> bestand_suchen',
-    '- Frage nach Kosten, Preis, Modell, Format, Tagesgrenze',
-    '    -> einstellung_lesen',
-    '- Bevor du irgendetwas ueber den INHALT eines Bildes sagst',
-    '    -> bild_ansehen',
-    '- Bevor du das erste Motiv in diesem Gespraech schreibst',
-    '    -> stil_lesen, damit du nichts wiederholst was schon drinsteht',
-    '- Spruch oder Text soll ins Bild',
-    '    -> text_aufs_bild, kostet nichts',
-    '- Favorit, Freigabe oder Bildunterschrift setzen',
-    '    -> datei_markieren',
-    '- Neues Bild oder Clip gewuenscht',
-    '    -> bild_erzeugen / video_erzeugen als VORSCHLAG',
-    '',
-    'Denselben Aufruf nicht wiederholen. Kommt ein Werkzeug mit einem Ergebnis',
-    'zurueck, arbeite damit - auch wenn es leer ist. "Nichts gefunden" ist eine',
-    'Antwort, kein Grund es dreimal anders zu formulieren.',
-    '',
-    'Zum Bildaufbau:',
-    '- Motive auf Englisch, und NUR den Bildinhalt beschreiben. Palette, Licht',
-    '  und Stimmung haengt der Stil-Block automatisch an jeden Prompt. Wiederhole',
-    '  sie nicht, das verwaessert nur. Mit `stil_lesen` siehst du, was drinsteht.',
-    `- Formate: ${werkzeuge.formateAlsText()}`,
-    '- Text im Bild kann kein Bildmodell. Ein einzelnes Wort ja, ein ganzer Satz',
-    '  nicht. Fuer Sprueche erst das Motiv rendern, dann `text_aufs_bild` - das',
-    '  laeuft lokal und kostet nichts.',
-    '',
-    ...ansehen,
-    // Das Handwerk steht in daten/regie.txt und wird bei jedem Zug frisch
-    // gelesen. Leer heisst: der Mensch will keine Hinweise - dann kommt
-    // auch keiner, statt ihm einen Standard aufzudraengen.
-    ...(regieText ? ['', regieText] : []),
-    '',
-    'Antworte auf Deutsch, kurz und direkt. Keine Aufzaehlung deiner Werkzeuge,',
-    'keine Entschuldigungen. Wenn du etwas nicht kannst, sag es in einem Satz.',
-  ].join('\n');
-}
-
-/** Ein Ereignis an den Browser schicken. */
-function sende(res, daten) {
-  res.write(`data: ${JSON.stringify(daten)}\n\n`);
-}
-
-/**
- * Ein Gespraechszug, moeglicherweise ueber mehrere Werkzeug-Runden.
- *
- * Endet in einem von drei Zustaenden:
- *   - Text: das Modell hat geantwortet, fertig.
- *   - Vorschlag: das Modell will etwas erzeugen. Die Schleife bricht ab und
- *     wartet auf den Klick des Menschen. Der Browser fuehrt dann selbst
- *     /api/erzeugen aus und schickt das Ergebnis als naechsten Zug zurueck.
- *   - Fehler.
- */
-async function fuehreGespraech(req, res) {
-  const koerper = await koerperLesen(req);
-  const modell = konfig.STANDARD.chatModell;
-
-  res.writeHead(200, {
-    'content-type': 'text/event-stream; charset=utf-8',
-    'cache-control': 'no-store',
-    connection: 'keep-alive',
-  });
-
-  // Was aus dem Browser kommt, geht nie ungeprueft weiter. Der Browser
-  // haelt seinen eigenen Stand des Gespraechs, und der kann schief sein -
-  // eine einzige verwaiste Werkzeug-Antwort darin, und OpenRouter lehnt ab,
-  // bis jemand die Datei loescht.
-  const nachrichten = chatverlauf.heile(koerper.nachrichten);
-  if (!nachrichten.length) {
-    sende(res, { typ: 'fehler', text: 'Keine Nachricht angegeben.' });
-    return res.end();
-  }
-  if (!modell) {
-    sende(res, { typ: 'fehler', text: 'Kein Chat-Modell eingestellt.' });
-    return res.end();
-  }
-
-  // Laeuft das Modell hier auf dem Rechner oder ueber OpenRouter? Davon
-  // haengt alles Weitere ab: welcher Anbieter gefragt wird, ob die
-  // Tagesgrenze greift und ob etwas gebucht wird.
-  const lokal = ollama.istLokal(modell);
-  const anbieter = lokal ? ollama : chat;
-
-  // Auch Reden kostet - aber nur ueber OpenRouter. Ein lokales Modell
-  // rechnet auf der eigenen Karte; die Bremse waere dort eine, die nichts
-  // bremst ausser der Lust weiterzuarbeiten.
-  if (!lokal) {
-    try {
-      kosten.pruefe('chat');
-    } catch (fehler) {
-      sende(res, { typ: 'fehler', text: fehler.message });
-      return res.end();
-    }
-  }
-
-  // Nur Modelle mit Bildeingang bekommen bild_ansehen angeboten. Ein reines
-  // Textmodell wuerde es sonst aufrufen und nichts damit anfangen koennen.
-  // Ollama sagt seine Faehigkeiten selbst, OpenRouter ueber die Modell-Liste.
-  const modellInfo = lokal
-    ? (await ollama.alle()).find((m) => m.id === modell)
-    : (await modelleChat.alle()).find((m) => m.id === modell);
-  const siehtBilder = Boolean(modellInfo?.siehtBilder);
-
-  const mitSystem = [{ role: 'system', content: systemHinweis(siehtBilder) }, ...nachrichten];
-  let dollarGesamt = 0;
-
-  try {
-    for (let runde = 1; runde <= chat.MAX_RUNDEN; runde++) {
-      const { nachricht, kosten: preis } = await anbieter.frage({
-        nachrichten: mitSystem,
-        modell,
-        werkzeuge: werkzeuge.schema({ siehtBilder }),
-      });
-
-      // Lokale Laeufe kosten nichts und werden nicht gebucht - sonst
-      // stuende in der Preistabelle ein Modell mit Schnitt 0, das jede
-      // Statistik daneben aussehen laesst.
-      if (preis && !lokal) {
-        dollarGesamt += preis;
-        kosten.buche({ dollar: preis, modell, chat: true });
-      }
-      mitSystem.push(nachricht);
-      nachrichten.push(nachricht);
-
-      const aufrufe = nachricht.tool_calls || [];
-      if (!aufrufe.length) {
-        sende(res, { typ: 'text', inhalt: nachricht.content || '' });
-        break;
-      }
-
-      let wartetAufKlick = false;
-      for (const a of aufrufe) {
-        const name = a.function?.name;
-        let argumente = {};
-        try {
-          argumente = JSON.parse(a.function?.arguments || '{}');
-        } catch { /* kaputte Argumente wie leer behandeln */ }
-
-        if (werkzeuge.brauchtBestaetigung(name)) {
-          sende(res, { typ: 'vorschlag', id: a.id, name, argumente });
-          wartetAufKlick = true;
-          continue;
-        }
-
-        let ergebnis;
-        try {
-          ergebnis = await werkzeuge.fuehreAus(name, argumente);
-        } catch (fehler) {
-          ergebnis = { fehler: fehler.message };
-        }
-        sende(res, { typ: 'werkzeug', name, argumente, ergebnis });
-
-        const zeile = { role: 'tool', tool_call_id: a.id, content: JSON.stringify(ergebnis) };
-        mitSystem.push(zeile);
-        nachrichten.push(zeile);
-
-        // Das Bild geht NUR in den Verlauf dieses Zuges, nicht in den
-        // gespeicherten. Als Base64 waeren es zweihunderttausend Zeichen -
-        // die laegen in chat.json und wuerden bei jedem weiteren Zug erneut
-        // bezahlt. Will das Modell es spaeter nochmal sehen, ruft es das
-        // Werkzeug wieder auf; das kostet einmal statt immer.
-        if (ergebnis.angesehen) {
-          try {
-            const bytes = await format.kleineFassung(absolut(ergebnis.angesehen));
-            mitSystem.push({
-              role: 'user',
-              content: [
-                { type: 'text', text: `Das ist ${ergebnis.angesehen}.` },
-                {
-                  type: 'image_url',
-                  image_url: { url: `data:image/png;base64,${bytes.toString('base64')}` },
-                },
-              ],
-            });
-          } catch (fehler) {
-            mitSystem.push({
-              role: 'user',
-              content: `Das Bild liess sich nicht laden: ${fehler.message}`,
-            });
-          }
-        }
-      }
-
-      // Auf einen Klick zu warten heisst: hier ist Schluss. Die Antwort auf
-      // den Vorschlag kommt als neuer Zug, mit dem Ergebnis als tool-Zeile.
-      if (wartetAufKlick) break;
-
-      if (runde === chat.MAX_RUNDEN) {
-        sende(res, { typ: 'text', inhalt: 'Ich drehe mich im Kreis - formulier die Frage bitte anders.' });
-      }
-    }
-  } catch (fehler) {
-    sende(res, { typ: 'fehler', text: fehler.message });
-  }
-
-  // Gespeichert wird der geheilte Stand: ein Aufruf, den niemand mehr
-  // beantwortet, hat auf der Platte nichts verloren.
-  chatverlauf.schreibe(nachrichten);
-
-  // Der Browser bekommt bewusst eine andere Fassung - mit dem offenen
-  // Aufruf, falls gerade eine Vorschlagskarte steht. Er beantwortet ihn
-  // sofort. Schickte man ihm die gekuerzte, haenge er seine Antwort an
-  // einen Aufruf, den er nicht mehr hat, und das Gespraech waere hin.
-  sende(res, {
-    typ: 'fertig',
-    nachrichten: chatverlauf.fuerBrowser(nachrichten),
-    dollar: Number(dollarGesamt.toFixed(6)),
-    verbrauch: kosten.stand(),
-  });
-  res.end();
 }
 
 // ---------------------------------------------------------------- Routen
@@ -419,100 +162,13 @@ const routen = {
     };
   },
 
-  /** Erzeugen. Passiert ausschliesslich auf ausdruecklichen Klick. */
-  'POST /api/erzeugen': async (req) => {
-    const koerper = await koerperLesen(req);
-    const {
-      motiv = '', anzahl = 1, klein = false, mitStil = true, name = '',
-    } = koerper;
-
-    // Kein Modell, kein Format angegeben? Dann gilt, was in der App steht.
-    // Genau darauf verlaesst sich der Chat: Die KI waehlt
-    // nie ein Modell, sie erbt die Einstellung des Menschen.
-    const modell = koerper.modell || konfig.STANDARD.modellBild;
-    const formatId = koerper.formatId || konfig.STANDARD.formatId;
-
-    if (!String(motiv).trim()) throw new Error('Kein Motiv angegeben.');
-    // Vor allem anderen: reicht das Tagesbudget ueberhaupt noch?
-    kosten.pruefe('bild');
-    const wieViele = Math.min(Math.max(1, Number(anzahl) || 1), 10);
-
-    const modellInfo = modelleBild.finde(modell);
-    if (!modellInfo) throw new Error(`Unbekanntes Modell: ${modell}`);
-
-    const m = format.masse(formatId, klein);
-    const ordnerDef = ordnerNach(m.ordner);
-    stelleOrdnerSicher(ordnerDef.pfad);
-
-    // Referenzbild ist optional. Angegeben heisst mit, weggelassen heisst ohne.
-    let referenzBytes = null;
-    let referenzTyp = 'image/png';
-    if (koerper.referenz) {
-      if (!modellInfo.kannReferenz) {
-        throw new Error(`"${modellInfo.name}" nimmt keine Referenzbilder entgegen.`);
-      }
-      const refPfad = absolut(koerper.referenz);
-      referenzBytes = bibliothek.lieferDatei(refPfad);
-      referenzTyp = path.extname(refPfad).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
-    }
-
-    const prompt = stil.bauePrompt(motiv, mitStil);
-    const stempel = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const basis = saubererName(name || motiv.split(/\s+/).slice(0, 4).join('-'));
-
-    const erzeugt = [];
-    let dollarGesamt = 0;
-
-    for (let i = 1; i <= wieViele; i++) {
-      const lauf = await openrouterBild.erzeugeBild({
-        prompt, modell, breite: m.genW, hoehe: m.genH,
-        referenzBild: referenzBytes, referenzTyp,
-      });
-
-      const nummer = wieViele > 1 ? `_v${i}` : '';
-      const datei = path.join(ordnerDef.pfad, `${basis}_${stempel}${nummer}_${m.suffix}.png`);
-      await format.schreibeFormatiert({
-        bytes: lauf.bytes, zielDatei: datei, zielW: m.zielW, zielH: m.zielH,
-      });
-
-      dollarGesamt += lauf.kosten || 0;
-
-      sidecar.schreibe(datei, {
-        prompt, motiv, stilBlock: mitStil ? stil.ladeStil() : '', mitStil,
-        anbieter: modellInfo.anbieter, modell, format: formatId,
-        erstellt: new Date().toISOString(),
-        referenzBild: koerper.referenz || null,
-        // Nur eintragen, wenn das Modell das gewuenschte Verhaeltnis nicht
-        // konnte und ein anderes gerendert hat. Dann wurde beschnitten, und
-        // man soll es nachlesen koennen statt zu raten.
-        verhaeltnis: lauf.verhaeltnis !== lauf.verhaeltnisGewuenscht
-          ? `${lauf.verhaeltnis} statt ${lauf.verhaeltnisGewuenscht}`
-          : null,
-        kosten: { dollar: lauf.kosten ?? null },
-      });
-
-      erzeugt.push(relativ(datei));
-    }
-
-    kosten.buche({ bilder: wieViele, dollar: dollarGesamt, modell });
-    verlauf.halteFest({
-      was: 'erzeugt',
-      quelle: quelleVon(req),
-      text: `${wieViele}× ${modellInfo.name} · ${formatId} · "${motiv}"`,
-      details: {
-        motiv, prompt, modell, modellName: modellInfo.name, formatId, anzahl: wieViele,
-        mitStil, referenz: koerper.referenz || null,
-        dollar: Number(dollarGesamt.toFixed(4)),
-        dateien: erzeugt,
-      },
-    });
-
-    return {
-      erzeugt,
-      dollar: Number(dollarGesamt.toFixed(4)),
-      verbrauch: kosten.stand(),
-    };
-  },
+  // Erzeugen. Passiert ausschliesslich auf ausdruecklichen Klick - der
+  // einzige Weg, der ein Bild erzeugt, fuer den Knopf unten wie fuer jedes
+  // fremde Skript. Der Assistent hat keinen; er darf nur vorschlagen.
+  'POST /api/erzeugen': async (req) => auftragBild.erzeuge({
+    ...await koerperLesen(req),
+    quelle: quelleVon(req),
+  }),
 
   /**
    * Datei wirklich umbenennen - nicht nur die Anzeige.
@@ -789,83 +445,13 @@ const routen = {
     return { art, anzahl: liste.length, modelle: liste, preise: await preise.aktualisiere(art) };
   },
 
-  /** Clip aus einem Bild. Laeuft asynchron und dauert Minuten. */
-  'POST /api/animieren': async (req) => {
-    const koerper = await koerperLesen(req);
-    const { motiv = '', quellBild = null, name = '' } = koerper;
-
-    // Wie beim Bild: ohne Angabe gilt die Einstellung aus der App. Das
-    // betrifft auch Dauer und Aufloesung - der Assistent schlaegt einen
-    // Clip vor, wie lang und wie gross er wird, stellt der Mensch ein.
-    const modell = koerper.modell || konfig.STANDARD.modellVideo;
-    const formatId = koerper.formatId || 'story';
-    const dauer = konfig.VIDEO_DAUERN.includes(Number(koerper.dauer))
-      ? Number(koerper.dauer) : konfig.STANDARD.videoDauer;
-    const aufloesung = konfig.VIDEO_AUFLOESUNGEN.includes(koerper.aufloesung)
-      ? koerper.aufloesung : konfig.STANDARD.videoAufloesung;
-
-    if (!String(motiv).trim()) throw new Error('Kein Bewegungs-Prompt angegeben.');
-    kosten.pruefe('video');
-    const modellInfo = modelleVideo.finde(modell);
-    if (!modellInfo) throw new Error(`Unbekanntes Videomodell: ${modell}`);
-
-    let startBytes = null;
-    let startTyp = 'image/png';
-    if (quellBild) {
-      if (!modellInfo.kannBildEingang) {
-        throw new Error(`"${modellInfo.name}" nimmt kein Standbild entgegen.`);
-      }
-      const p = absolut(quellBild);
-      startBytes = bibliothek.lieferDatei(p);
-      startTyp = path.extname(p).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
-    }
-
-    const m = format.masse(formatId, false);
-    const ordnerDef = ordnerNach(m.ordner);
-    stelleOrdnerSicher(ordnerDef.pfad);
-
-    const lauf = await openrouterVideo.erzeugeVideo({
-      prompt: motiv, modell, breite: m.zielW || m.genW, hoehe: m.zielH || m.genH,
-      dauer, aufloesung, startBild: startBytes, startBildTyp: startTyp,
-    });
-
-    const stempel = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const basis = saubererName(name || motiv.split(/\s+/).slice(0, 4).join('-'));
-    const endung = lauf.typ.includes('webm') ? 'webm' : 'mp4';
-    const datei = path.join(ordnerDef.pfad, `${basis}_${stempel}_clip.${endung}`);
-    fs.writeFileSync(datei, lauf.bytes);
-
-    sidecar.schreibe(datei, {
-      prompt: motiv, motiv, anbieter: 'openrouter', modell, format: formatId,
-      erstellt: new Date().toISOString(),
-      referenzBild: quellBild || null,
-      // Ohne diese zwei laesst sich ein Clip spaeter nicht wiederholen -
-      // und genau das soll eine Vorlage aus der Detailansicht koennen.
-      dauer,
-      aufloesung,
-      kosten: { dollar: lauf.kosten ?? null },
-    });
-
-    kosten.buche({ clips: 1, dollar: lauf.kosten || 0, modell });
-
-    verlauf.halteFest({
-      was: 'animiert',
-      quelle: quelleVon(req),
-      text: `Clip · ${modellInfo.name} · ${dauer} s · ${aufloesung} · "${motiv}"`,
-      details: {
-        motiv, modell, modellName: modellInfo.name, formatId, dauer, aufloesung,
-        quellBild: quellBild || null, dollar: lauf.kosten, sekunden: lauf.dauer,
-        dateien: [relativ(datei)],
-      },
-    });
-
-    return {
-      erzeugt: [relativ(datei)],
-      dollar: lauf.kosten,
-      sekunden: lauf.dauer,
-      verbrauch: kosten.stand(),
-    };
-  },
+  // Clip aus einem Bild, dauert Minuten. Teuerster Weg der App - die
+  // Bremse sitzt im Auftrag und nicht hier, damit sie auch greift, wenn ihn
+  // jemand ohne diese Route aufruft.
+  'POST /api/animieren': async (req) => auftragVideo.erzeuge({
+    ...await koerperLesen(req),
+    quelle: quelleVon(req),
+  }),
 };
 
 // ---------------------------------------------------------------- Server
@@ -879,10 +465,22 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await routen[schluessel](req, url));
     }
 
-    // Offener Strom: der Browser sieht jeden Vorgang sofort, auch wenn
-    // ein Programm ihn ueber die API ausgeloest hat.
+    // Ein Gespraechszug als offener Strom. Was hier steht, ist alles, was
+    // der Server davon weiss: Kopfzeilen aufmachen, jedes Ereignis als
+    // SSE-Zeile durchreichen, am Ende zumachen. Der Zug selbst - Werkzeuge,
+    // Kosten, Runden - laeuft in lib/gespraech.mjs.
     if (req.method === 'POST' && url.pathname === '/api/chat') {
-      return fuehreGespraech(req, res);
+      const koerper = await koerperLesen(req);
+      res.writeHead(200, {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-store',
+        connection: 'keep-alive',
+      });
+      await gespraech.fuehre({
+        nachrichten: koerper.nachrichten,
+        sende: (daten) => res.write(`data: ${JSON.stringify(daten)}\n\n`),
+      });
+      return res.end();
     }
 
     if (req.method === 'GET' && url.pathname === '/api/verlauf-strom') {

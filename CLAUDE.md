@@ -10,6 +10,35 @@ schreibt weiter deutsch. Ein Sprachdatei-Umbau waere ein eigenes Vorhaben.
 
 ---
 
+## REGEL NULL: Claude erzeugt keine Bilder und keine Videos. Nie.
+
+Kein Bild, kein Clip. Nicht zum Testen, nicht "nur eins", nicht "ganz klein",
+nicht um einen Fehler nachzustellen, nicht weil ein Umbau sonst ungeprueft
+bleibt. **Erzeugt wird ausschliesslich, wenn Felix selbst klickt.**
+
+Das heisst konkret: kein Aufruf von `POST /api/erzeugen` und
+`POST /api/animieren`, weder gegen die laufende App noch gegen eine
+Testkopie, weder von Hand noch aus einem Skript. Auch nicht `lib/auftrag-*`
+direkt aufrufen. Auch nicht mit fremdem Schluessel oder fremdem Modell.
+
+**Ein Aufruf, den ich fuer einen Fehlerfall halte, ist keiner.** Am 6.9.2026
+sind so zweimal 63 ct verbrannt: `POST /api/animieren` sollte an "Modell
+nimmt kein Standbild" und an der Tagesgrenze scheitern, war aber beide Male
+gueltig – OpenRouter hat gerendert und abgerechnet. Der Server wurde mitten
+im Lauf abgeschossen, es kam nichts zurueck. **1,26 $ fuer nichts.** Wenn
+nicht mit Sicherheit feststeht, dass ein Aufruf vor dem Anbieter abbricht,
+wird er nicht abgeschickt.
+
+Was stattdessen geht: alles ohne Anbieter. Server starten, Routen abklopfen,
+`/api/schaetzung`, Fehler VOR dem Anbieter (leeres Motiv, erfundenes Modell),
+Tagesbremse mit vorbelegtem `daten/verbrauch.json`, Oberflaeche im Browser,
+`text_aufs_bild` (rendert lokal, kostet nichts), Chat ueber Ollama (lokal).
+
+Bleibt der Erfolgsfall ungeprueft, steht das so in der Notiz – "nicht
+geprueft, weil es Geld kostet" ist ein vollstaendiger Satz.
+
+---
+
 ## Starten und pruefen
 
 ```powershell
@@ -21,17 +50,19 @@ node server.mjs          # roh, ohne Schluessel aus dem User-Bereich
 Es gibt **keine package.json, keine Tests, keinen Linter, keinen Build**. Das
 ist Absicht. Wer eine Abhaengigkeit einfuehren will, fragt vorher.
 
-Geprueft wird von Hand im Browser. Wenn eine Aenderung Geld kostet (erzeugen,
-animieren, Chat), laeuft der Test **nicht** nebenbei – erst fragen.
+Geprueft wird von Hand im Browser. Erzeugen und Animieren pruefe ich gar
+nicht – siehe Regel Null. Beim Chat gilt: lokal ueber Ollama kostenlos, ueber
+OpenRouter **nicht** nebenbei, erst fragen.
 
 ---
 
 ## Aufbau
 
 ```
-server.mjs      NUR Routing. Keine Fachlogik. Ausnahme: die Gespraechsschleife
-                (systemHinweis + fuehreGespraech), weil sie Werkzeuge und
-                Strom verbindet und in kein einzelnes lib-Modul passt.
+server.mjs      NUR Routing. Keine Fachlogik, keine Ausnahme. Bis 6.9.2026
+                stand die Gespraechsschleife hier, "weil sie Werkzeuge und
+                Strom verbindet" - sie tut es nicht, `sende` ist jetzt ein
+                Rueckruf. Wer hier wieder Logik anlegt, legt sie falsch an.
 lib/            ein Modul, eine Aufgabe. Nichts weiss mehr, als es braucht.
 web/            die Oberflaeche, ES-Module direkt im Browser
 skripte/        PowerShell fuer System.Drawing
@@ -58,6 +89,9 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `modelle-bild/-video/-chat.mjs` | reine Kataloge + Nachladen. **Keine** Aufruf-Logik |
 | `anbieter-openrouter-*.mjs` | die Aufrufe. Kennen kein Dateisystem, bekommen Bytes, liefern Bytes |
 | `ollama.mjs` | lokaler Chat. Erkennung, Katalog und Aufruf in EINER Datei - Ausnahme zur Trennung unten, begruendet im Kopf der Datei. Laeuft Ollama nicht, ist die Liste leer und niemand merkt etwas |
+| `auftrag-bild.mjs` | ein Bildauftrag ganz: Bremse, Modell, Ordner, Referenz, Prompt, Rendern, Sidecar, Buchung, Verlauf. Kennt kein HTTP |
+| `auftrag-video.mjs` | dasselbe fuer Clips. Zwei Dateien, weil Dauer, Aufloesung und Rohschreiben anders laufen |
+| `gespraech.mjs` | Systemhinweis + Werkzeugschleife. Schickt Ereignisse ueber den Rueckruf `sende`, kennt weder `req` noch `res` |
 | `werkzeuge.mjs` | was der Assistent darf. Siehe unten |
 | `format.mjs`, `text.mjs`, `schriften.mjs` | die drei PowerShell-Kapseln |
 | `verlauf.mjs` | Verlauf + Server-Sent-Events an offene Fenster |
@@ -111,8 +145,10 @@ Module reden ueber Rueckruf-Setzer miteinander (`setzeKlickZiel`,
 Der Assistent darf teure Werkzeuge (`bild_erzeugen`, `video_erzeugen`) nur
 *vorschlagen*. `werkzeuge.fuehreAus` hat fuer sie **keinen** Ausfuehrungspfad
 – die Weigerung steht im Code, nicht nur im Systemhinweis. Ausgeloest wird
-ausschliesslich ueber `POST /api/erzeugen`, denselben Weg wie der Knopf
-unten. Es darf nie einen zweiten Weg zum Erzeugen geben.
+ausschliesslich ueber `POST /api/erzeugen` und `POST /api/animieren`,
+denselben Weg wie der Knopf unten. Beide reichen an `lib/auftrag-*` weiter,
+und dort sitzt die Bremse – nicht in der Route. Es darf nie einen zweiten
+Weg zum Erzeugen geben.
 
 **2. Die KI waehlt kein Modell.**
 Kein Werkzeug hat ein Modell-Feld. Lassen Modell, Format, Clip-Dauer oder
