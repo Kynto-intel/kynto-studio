@@ -260,6 +260,40 @@ function verdrahteStil(start) {
   });
 }
 
+/**
+ * Die Hoehe der Leiste unten an das Raster melden.
+ *
+ * Sie ist nicht konstant: Referenzbild, Hinweiszeile und das aufgeklappte
+ * "Mehr" machen sie hoeher. Stand im CSS ein fester Rand, verschwand je
+ * nach Zustand die unterste Zeile des Rasters dahinter - gefunden an den
+ * Speichern-Knoepfen im Vorlagen-Formular, die man nicht mehr sah.
+ *
+ * MutationObserver und NICHT ResizeObserver: der Resize-Beobachter liefert
+ * ueber den Zeichentakt aus und schweigt, solange das Fenster nicht
+ * gezeichnet wird - gemessen am 6.9.2026, im versteckten Tab kam nicht
+ * einmal der erste Aufruf. Die Hoehe aendert sich hier ohnehin nur, wenn
+ * Elemente dazukommen, verschwinden oder ihr hidden umspringt, und genau
+ * das sieht der MutationObserver sofort.
+ */
+function verdrahteLeistenhoehe() {
+  const leiste = document.querySelector('footer.leiste');
+  if (!leiste) return;
+
+  const melde = () => {
+    document.body.style.setProperty('--leiste-hoehe', `${Math.round(leiste.offsetHeight)}px`);
+  };
+  melde();
+
+  new MutationObserver(melde).observe(leiste, {
+    attributes: true, attributeFilter: ['hidden', 'style', 'class'],
+    childList: true, subtree: true,
+  });
+  // Ein schmaleres Fenster bricht die Zeilen um und macht die Leiste hoeher.
+  window.addEventListener('resize', melde);
+  // Tippen im Motivfeld laesst es wachsen - das sieht keine Mutation.
+  el('motiv')?.addEventListener('input', melde);
+}
+
 /** Breitenunterschied der Seitenleiste zwischen offen und schmal. */
 const LEISTE_DELTA = 248 - 68;
 const ANIMATION_MS = 200;
@@ -427,6 +461,7 @@ async function los() {
 
   verdrahteFuss();
   verdrahteBurger();
+  verdrahteLeistenhoehe();
 
   // Live-Verlauf: zeigt auch, was Claude von aussen ausloest.
   // Eine Live-Verbindung, zwei Abnehmer: die Galerie laedt nach, das
