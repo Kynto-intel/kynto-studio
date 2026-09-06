@@ -15,7 +15,6 @@ let liste = [];
 let beiLaden = () => {};
 let beiAenderung = () => {};
 let beiBildwahl = () => {};
-let beiOeffnen = () => {};
 
 /**
  * Welche Vorlage gerade offen ist - `null` heisst: die Karten stehen da.
@@ -62,15 +61,6 @@ export function setzeAenderungsZiel(fn) { beiAenderung = fn; }
  * einen Stelle, an der sie ohnehin schon steht.
  */
 export function setzeBildwahlZiel(fn) { beiBildwahl = fn; }
-
-/**
- * Was passiert, wenn man ein erzeugtes Bild im Gitter anklickt.
- *
- * Dasselbe wie in der Galerie: die Detailansicht. Kein eigener Betrachter -
- * ein zweiter Weg, ein Bild gross anzusehen, waere ein zweiter Ort mit
- * denselben Knoepfen (Referenz, Text aufs Bild, Favorit).
- */
-export function setzeOeffnenZiel(fn) { beiOeffnen = fn; }
 
 /** Startbestand aus /api/start, damit der erste Klick nicht warten muss. */
 export function setzeDaten({ vorlagen = [] } = {}) {
@@ -260,7 +250,7 @@ function gemachtKachel(e) {
   bild.loading = 'lazy';
   rahmen.append(bild);
 
-  const gross = () => beiOeffnen(e);
+  const gross = () => zeigeGross(e.pfad, e.motiv || e.name);
   rahmen.addEventListener('click', gross);
   rahmen.addEventListener('keydown', (t) => {
     if (t.key === 'Enter' || t.key === ' ') { t.preventDefault(); gross(); }
@@ -314,6 +304,43 @@ async function ladeGemacht() {
   }
   // Zwischendurch geschlossen? Dann nichts mehr zeichnen.
   if (entwurf && entwurf.id === id) await zeichneNeu();
+}
+
+/**
+ * Ein Bild gross ansehen - und wirklich nur das Bild.
+ *
+ * Bewusst NICHT die Detailansicht: die bringt Datenblatt, Prompt und sechs
+ * Knoepfe mit. Hier will man sehen, ob das Bild etwas geworden ist, und
+ * sonst nichts. Kein Rahmen, kein Kasten, nur die Datei auf dunklem Grund.
+ *
+ * Zu geht es mit jedem Klick und mit Escape - ein Schliessknopf waere schon
+ * wieder Beiwerk auf einem Bild, das fuer sich stehen soll.
+ */
+function zeigeGross(pfad, beschriftung) {
+  const grund = document.createElement('div');
+  grund.className = 'vl-gross';
+
+  const bild = document.createElement('img');
+  bild.src = dateiUrl(pfad);
+  bild.alt = beschriftung || '';
+  grund.append(bild);
+
+  const zu = () => {
+    grund.remove();
+    document.removeEventListener('keydown', beiTaste);
+  };
+  function beiTaste(e) {
+    if (e.key !== 'Escape') return;
+    // Nicht weiterreichen: sonst schliesst dasselbe Escape auch noch das
+    // Vorlagen-Formular darunter.
+    e.preventDefault();
+    e.stopPropagation();
+    zu();
+  }
+
+  grund.addEventListener('click', zu);
+  document.addEventListener('keydown', beiTaste);
+  document.body.append(grund);
 }
 
 /** Formular zu, Karten wieder her. Verwirft alles Ungespeicherte. */
