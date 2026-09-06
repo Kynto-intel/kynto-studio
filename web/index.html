@@ -38,26 +38,29 @@
        nur im Studio gibt. "Ordner einstellen" ist die Grenze. -->
   <nav class="ordner system" id="systemListe"></nav>
 
-  <!-- Was zur Bedienung der App selbst gehoert, steht ganz unten - direkt
-       ueber der Linie mit Guthaben und Verbrauch. Diese Liste traegt das
-       `margin-top: auto`, das den ganzen Fuss nach unten drueckt; leer ist
-       sie einfach null Pixel hoch. -->
-  <nav class="ordner system" id="untenListe"></nav>
+    <!-- Die alte Lücke bleibt bewusst stehen, damit die Seitenleiste nach
+      unten denselben Abstand behält, auch wenn der Verlauf jetzt in den
+      Einstellungen als eigener Reiter sitzt. -->
+    <div class="verlauf-luecke" aria-hidden="true"></div>
 
-  <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
-       Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
-       als Titel dran, statt Platz zu fressen. -->
-  <div class="fuss">
-    <div id="anbieterStand"></div>
-    <div id="verbrauch"></div>
-  </div>
+    <!-- Fuss: Anbieter, Guthaben und Verbrauch stehen zusammen ganz unten.
+      Eine Zeile pro Angabe, Zahlen rechtsbuendig - Einzelheiten haengen
+      als Titel dran, statt Platz zu fressen. Der Bereich kann hier mit
+      einem Klick eingeklappt werden, damit die Sidebar lesbarer bleibt. -->
+    <div class="fuss" id="fussBlock">
+      <button class="fuss-kopf" id="fussKnopf" type="button" aria-expanded="true" aria-label="OpenRouter-Bereich einklappen">
+        <span>OpenRouter</span>
+        <span class="fuss-pfeil" aria-hidden="true">▾</span>
+      </button>
+      <div class="fuss-inhalt" id="fussInhalt">
+        <div id="anbieterStand"></div>
+        <div id="verbrauch"></div>
+      </div>
+    </div>
 
-  <!-- Ganz unten, unter dem Verbrauch. Der Punkt zeigt, ob die
-       Live-Verbindung steht. -->
-  <button class="verlauf-knopf" id="verlaufKnopf" type="button"
-          title="Alles, was in der App passiert ist">
-    <i class="punkt" id="verlaufPunkt"></i><span>Verlauf ansehen</span>
-  </button>
+    <!-- Einstellungen stehen nach dem Fuss, an der bisherigen Stelle des
+      Verlaufs. -->
+    <nav class="ordner system" id="untenListe"></nav>
 </aside>
 
 <main class="haupt">
@@ -90,7 +93,11 @@
   <div class="chat-kopf">
     <strong>Assistent</strong>
     <div class="chat-kopf-knoepfe">
-      <button id="chatZu" class="chat-klein" type="button" aria-label="Chat schließen">×</button>
+      <button id="chatZu" class="chat-klein" type="button" aria-label="Chat schließen">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6 18 18M18 6 6 18" />
+        </svg>
+      </button>
     </div>
   </div>
 

@@ -22,8 +22,9 @@ image. Once a model has actually run, the *measured* price from the real
 invoice replaces the estimate. Nothing is guessed twice.
 
 **Your style is enforced, not remembered.** A style block is appended to
-every prompt automatically. You cannot forget it, so a whole feed keeps one
-look without pasting the same three sentences into every prompt.
+every prompt automatically — one for images, one for clips. You cannot
+forget it, so a whole feed keeps one look without pasting the same three
+sentences into every prompt.
 
 **The prompt never gets lost.** Every image gets a sidecar JSON next to it
 with the prompt, model and settings. Rename or move the file in your file
@@ -88,9 +89,9 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.
-- **Activity log** — a window inside the app, four areas: images with their
+- **Activity log** — a tab under Settings, four areas: images with their
   prompts and thumbnails, videos, the assistant conversation, and settings
-  changes. New entries appear live while it is open.
+  changes.
 - **Plain HTTP API** — the browser interface is just one client. Script it,
   or let your own agent drive it while you watch in the browser.
 
@@ -184,12 +185,13 @@ to stay writable — otherwise generated images would have nowhere to go.
 ## Activity log
 
 Everything the app does is recorded: what was generated, with which prompt
-and model, what it cost. **Verlauf ansehen** sits at the very bottom of the
-sidebar and opens it as a window inside the app.
+and model, what it cost. It sits under **Einstellungen** as the third tab,
+next to the daily limits and the director's notes — one place for the things
+you look at rather than work with.
 
 Four areas, because the things have little to do with each other: images
 (with prompt and thumbnails), videos, the assistant conversation, and
-settings changes. New entries appear live while it is open.
+settings changes.
 
 The log lives in `daten/verlauf.json` and never leaves your machine.
 
@@ -287,7 +289,8 @@ kynto-studio/
     ├── verlauf.json           activity log with full prompts
     ├── verbrauch.json         spending and measured model prices
     ├── vorlagen.json          your saved runs
-    ├── stil-block.txt         your style block, plain text
+    ├── stil-block.txt         your style block for images, plain text
+    ├── stil-block-video.txt   the same for clips
     └── regie.txt              what the assistant knows about the craft
 ```
 
@@ -296,7 +299,14 @@ your images are never touched, they live under `wurzel`.
 
 ### The style block
 
-`daten/stil-block.txt` is a plain text file, appended to every prompt.
-Edit it in the app or in any text editor — it is re-read on every single
-prompt, so changes take effect immediately without restarting anything.
-Emptying it in the app restores the default rather than deleting the file.
+Two plain text files: `daten/stil-block.txt` goes onto every image prompt,
+`daten/stil-block-video.txt` onto every clip. They are separate because a
+video model needs different words — grain and camera character matter,
+"no distorted hands" does not, and a clip additionally has to be told not
+to cut. Neither one describes motion; that belongs in the prompt.
+
+The composer shows whichever block matches the mode you are in — switch
+between Bild and Video and the field follows. Edit them in the app or in any
+text editor; both are re-read on every single prompt, so changes take effect
+immediately without restarting anything. Emptying one in the app restores its
+default rather than deleting the file.

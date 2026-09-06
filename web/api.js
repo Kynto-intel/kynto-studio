@@ -34,7 +34,8 @@ export const api = {
   sidecar: (pfad, aenderungen) => ruf('/api/sidecar', { method: 'POST', body: JSON.stringify({ pfad, aenderungen }) }),
   umbenennen: (pfad, neuerName) => ruf('/api/umbenennen', { method: 'POST', body: JSON.stringify({ pfad, neuerName }) }),
   textAnwenden: (pfad, ebenen) => ruf('/api/text-anwenden', { method: 'POST', body: JSON.stringify({ pfad, ebenen }) }),
-  stilSpeichern: (text) => ruf('/api/stil', { method: 'POST', body: JSON.stringify({ text }) }),
+  // art: 'bild' oder 'video' - es gibt einen Block je Gattung.
+  stilSpeichern: (text, art = 'bild') => ruf('/api/stil', { method: 'POST', body: JSON.stringify({ text, art }) }),
   regieSpeichern: (text) => ruf('/api/regie', { method: 'POST', body: JSON.stringify({ text }) }),
   standardSpeichern: (koerper) => ruf('/api/standard', { method: 'POST', body: JSON.stringify(koerper) }),
   chatModelle: (alle = false) => ruf(`/api/chat-modelle${alle ? '?alle=1' : ''}`),

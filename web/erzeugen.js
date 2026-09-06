@@ -11,6 +11,9 @@ import * as vorlagen from './vorlagen.js';
 
 let beiFertig = () => {};
 let verbrauchZeigen = () => {};
+// Wird beim Umschalten Bild/Video gerufen. studio.js haengt daran das
+// Stil-Feld, das je Gattung einen anderen Block zeigt.
+let beiGattung = () => {};
 
 const el = (id) => document.getElementById(id);
 
@@ -62,9 +65,15 @@ function merkeAmServer(feld, wert) {
   api.standardSpeichern({ [feld]: wert }).catch(() => {});
 }
 
-export function setzeCallbacks({ fertig, verbrauch }) {
+export function setzeCallbacks({ fertig, verbrauch, gattung }) {
   beiFertig = fertig || beiFertig;
   verbrauchZeigen = verbrauch || verbrauchZeigen;
+  beiGattung = gattung || beiGattung;
+}
+
+/** Bild oder Video - fuer alle, die sich danach richten muessen. */
+export function gattung() {
+  return art;
 }
 
 function geld(betrag) {
@@ -149,6 +158,7 @@ export function baueRegler({
       merke('art', neu);
       baueModellListe();
       zeigeGattung();
+      beiGattung(neu);
       aktualisiereSchaetzung();
     },
   });
@@ -465,6 +475,7 @@ async function erzeugen() {
         aufloesung: werte.aufloesung,
         quellBild: werte.referenz,
         name: werte.name,
+        mitStil: werte.mitStil,
       });
       verbrauchZeigen(e.verbrauch);
       letzterLauf = { art: 'video', werte, datei: e.erzeugt[0] || null };

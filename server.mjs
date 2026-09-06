@@ -110,6 +110,9 @@ const routen = {
     vorlagen: vorlagen.mitBestand(),
     stil: stil.ladeStil(),
     standardStil: stil.STANDARD_STIL,
+    stilVideo: stil.ladeStilVideo(),
+    standardStilVideo: stil.STANDARD_STIL_VIDEO,
+    stilVideoDatei: stil.STIL_DATEI_VIDEO,
     regie: regie.ladeRegie(),
     standardRegie: regie.STANDARD_REGIE,
     regieDatei: regie.REGIE_DATEI,
@@ -361,16 +364,20 @@ const routen = {
     return { regie: regie.speichereRegie(text) };
   },
 
+  // Ein Block je Gattung. `art` fehlt heisst Bild - so bleiben aeltere
+  // Aufrufe gueltig, die es nur einen Block lang gab.
   'POST /api/stil': async (req) => {
-    const { text } = await koerperLesen(req);
-    const neu = stil.speichereStil(text);
+    const { text, art } = await koerperLesen(req);
+    const video = art === 'video';
+    const neu = video ? stil.speichereStilVideo(text) : stil.speichereStil(text);
+    const wie = video ? 'Video-Stil-Block' : 'Stil-Block';
     verlauf.halteFest({
       was: 'stil',
       quelle: quelleVon(req),
-      text: text?.trim() ? 'Stil-Block geändert' : 'Stil-Block auf Standard zurückgesetzt',
-      details: { stil: neu },
+      text: text?.trim() ? `${wie} geändert` : `${wie} auf Standard zurückgesetzt`,
+      details: { stil: neu, art: video ? 'video' : 'bild' },
     });
-    return { stil: neu };
+    return { stil: neu, art: video ? 'video' : 'bild' };
   },
 
   // ------------------------------------------------------------- Grenzen

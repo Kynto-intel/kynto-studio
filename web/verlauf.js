@@ -18,13 +18,20 @@ export function setzeEreignisZiel(fn) { beiEreignis = fn; }
 
 /** Verbindet mit dem Strom. EventSource verbindet von allein neu. */
 export function verbinde() {
+  // Den Punkt gibt es nur, solange der Verlauf einen eigenen Knopf in der
+  // Seitenleiste hat. Seit er als Reiter in den Einstellungen sitzt, fehlt
+  // er - der Strom laeuft trotzdem weiter. Deshalb haengt hier NUR die
+  // Punkt-Anzeige an seiner Existenz und nicht der ganze Anschluss: sonst
+  // wuerde die Galerie nach einem neuen Bild nicht mehr nachladen.
   const punkt = el('verlaufPunkt');
   const strom = new EventSource('/api/verlauf-strom');
 
-  strom.addEventListener('open', () => {
-    punkt.className = 'punkt an';
-    punkt.title = 'Live verbunden';
-  });
+  if (punkt) {
+    strom.addEventListener('open', () => {
+      punkt.className = 'punkt an';
+      punkt.title = 'Live verbunden';
+    });
+  }
 
   strom.addEventListener('message', (e) => {
     let eintrag;
@@ -39,6 +46,7 @@ export function verbinde() {
   });
 
   strom.addEventListener('error', () => {
+    if (!punkt) return;   // EventSource verbindet von allein neu
     punkt.className = 'punkt';
     punkt.title = 'Verbindung unterbrochen — versucht neu';
   });

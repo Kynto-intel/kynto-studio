@@ -19,6 +19,7 @@
 import { api } from './api.js';
 import * as merker from './merker.js';
 import * as regie from './regie.js';
+import * as verlauf from './verlauf-fenster.js';
 
 let grenzen = { gesamt: null, bild: null, video: null, chat: null };
 let verbrauch = null;
@@ -218,6 +219,7 @@ function zeichneGrenzen(ziel) {
 const REITER = [
   { id: 'grenzen', label: 'Tagesgrenzen', zeichne: zeichneGrenzen },
   { id: 'regie', label: 'Regie', zeichne: (ziel) => regie.zeichne(ziel) },
+  { id: 'verlauf', label: 'Verlauf', zeichne: (ziel) => verlauf.zeichneIn(ziel) },
 ];
 
 // Ueber den Reload gemerkt: wer an der Regie schreibt, laedt zwischendurch

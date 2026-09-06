@@ -232,6 +232,96 @@ function leerMeldung(text) {
   el('vfListe').append(li);
 }
 
+export async function zeichneIn(ziel) {
+  const kasten = document.createElement('div');
+  kasten.className = 'einstellungen';
+
+  const stand = document.createElement('p');
+  stand.className = 'gr-erklaerung gr-klein';
+  stand.textContent = 'Damit bleibt der komplette Ablauf dieser App in einer Ansicht zusammen.';
+
+  const nav = document.createElement('nav');
+  nav.className = 'vs-reiter';
+
+  const liste = document.createElement('ul');
+  liste.className = 'vs-liste';
+
+  kasten.append(stand, nav, liste);
+  ziel.append(kasten);
+
+  let aktiv = localStorage.getItem('kynto-verlauf-bereich') || 'bilder';
+  let eintraege = [];
+  let gespraech = [];
+
+  const baueReiter = () => {
+    nav.replaceChildren();
+    for (const b of BEREICHE) {
+      const zahl = b.id === 'chat'
+        ? gespraech.filter((n) => n.role === 'user').length
+        : eintraege.filter((e) => b.arten.includes(e.was)).length;
+
+      const knopf = document.createElement('button');
+      knopf.type = 'button';
+      knopf.className = 'reiter';
+      knopf.setAttribute('aria-current', String(b.id === aktiv));
+
+      const name = document.createElement('span');
+      name.textContent = b.label;
+      const n = document.createElement('span');
+      n.className = 'reiter-zahl';
+      n.textContent = zahl;
+
+      knopf.append(name, n);
+      knopf.addEventListener('click', () => {
+        aktiv = b.id;
+        localStorage.setItem('kynto-verlauf-bereich', b.id);
+        baueReiter();
+        zeichne();
+      });
+      nav.append(knopf);
+    }
+  };
+
+  const zeichne = () => {
+    liste.replaceChildren();
+
+    if (aktiv === 'chat') {
+      const zeilen = chatZeilen();
+      if (!zeilen.length) {
+        const li = document.createElement('li');
+        li.className = 'vs-leer';
+        li.textContent = 'Noch kein Gespräch geführt.';
+        liste.append(li);
+        return;
+      }
+      liste.append(...zeilen);
+      return;
+    }
+
+    const bereich = BEREICHE.find((b) => b.id === aktiv);
+    const passend = eintraege.filter((e) => bereich.arten.includes(e.was));
+    if (!passend.length) {
+      const li = document.createElement('li');
+      li.className = 'vs-leer';
+      li.textContent = 'Hier ist noch nichts passiert.';
+      liste.append(li);
+      return;
+    }
+    for (const e of passend) liste.append(verlaufZeile(e));
+  };
+
+  try {
+    const daten = await fetch('/api/verlauf?anzahl=800').then((r) => r.json());
+    eintraege = daten.eintraege || [];
+    gespraech = daten.chat || [];
+    stand.textContent = `${eintraege.length} Vorgänge`;
+    baueReiter();
+    zeichne();
+  } catch (fehler) {
+    stand.textContent = `konnte nicht laden: ${fehler.message}`;
+  }
+}
+
 function zeichne() {
   const liste = el('vfListe');
   liste.replaceChildren();
@@ -328,10 +418,13 @@ export function schliesseFenster() { schliesse(); }
 export function verdrahte() {
   aktiv = localStorage.getItem('kynto-verlauf-bereich') || 'bilder';
 
-  el('verlaufKnopf').addEventListener('click', oeffne);
-  el('vfSchliessen').addEventListener('click', schliesse);
-  el('verlaufFenster').addEventListener('click', (e) => {
-    if (e.target === el('verlaufFenster')) schliesse();
+  const knopf = el('verlaufKnopf');
+  if (knopf) knopf.addEventListener('click', oeffne);
+  const schliessen = el('vfSchliessen');
+  if (schliessen) schliessen.addEventListener('click', () => document.getElementById('verlaufFenster').hidden = true);
+  const fenster = el('verlaufFenster');
+  if (fenster) fenster.addEventListener('click', (e) => {
+    if (e.target === fenster) schliesse();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !el('verlaufFenster').hidden) schliesse();

@@ -170,23 +170,68 @@ function zeigeVerbrauch(v) {
   }));
 }
 
-function verdrahteStil(startStil, standardStil, stilDatei) {
-  el('stilText').value = startStil;
+/**
+ * Das Stil-Feld unten im Komponisten.
+ *
+ * EIN Feld fuer zwei Bloecke: Steht der Komponist auf Bild, zeigt es den
+ * Bild-Block, steht er auf Video, den fuer Clips. Zwei Felder nebeneinander
+ * waeren die naheliegende Loesung gewesen und die schlechtere - man schreibt
+ * ohnehin immer in den, mit dem man gerade arbeitet, und im eingeklappten
+ * Fuss ist kein Platz fuer den doppelten Kasten.
+ *
+ * Was in dem Feld steht, wird beim Umschalten NICHT gerettet. Wer tippt und
+ * dann die Gattung wechselt, verliert den Entwurf. Vertretbar, weil der
+ * Wechsel ein bewusster Klick ist - aber deshalb steht die Gattung auch in
+ * der Beschriftung, damit niemand in den falschen Block schreibt.
+ */
+function verdrahteStil(start) {
+  const bloecke = {
+    bild: {
+      text: start.stil,
+      standard: start.standardStil,
+      datei: start.stilDatei,
+      label: 'Stil-Block Bild — hängt automatisch an jeden Bild-Prompt',
+    },
+    video: {
+      text: start.stilVideo,
+      standard: start.standardStilVideo,
+      datei: start.stilVideoDatei,
+      label: 'Stil-Block Video — hängt automatisch an jeden Clip',
+    },
+  };
+  let art = 'bild';
+
+  const beschriftung = el('stilText').closest('label');
 
   // Pfad anzeigen: der Block ist eine echte Datei und laesst sich auch
   // ausserhalb der App bearbeiten. Aenderungen greifen sofort, weil bei
   // jedem Prompt neu gelesen wird.
-  if (stilDatei) {
-    const pfad = el('stilPfad');
-    pfad.textContent = stilDatei;
-    pfad.title = 'Klicken zum Kopieren — die Datei lässt sich auch im Editor bearbeiten';
-    pfad.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(stilDatei);
-      const alt = pfad.textContent;
-      pfad.textContent = 'Pfad kopiert';
-      setTimeout(() => { pfad.textContent = alt; }, 1600);
-    });
-  }
+  const pfad = el('stilPfad');
+  pfad.title = 'Klicken zum Kopieren — die Datei lässt sich auch im Editor bearbeiten';
+  pfad.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(bloecke[art].datei || '');
+    const alt = pfad.textContent;
+    pfad.textContent = 'Pfad kopiert';
+    setTimeout(() => { pfad.textContent = alt; }, 1600);
+  });
+
+  const zeige = () => {
+    const b = bloecke[art];
+    el('stilText').value = b.text;
+    pfad.textContent = b.datei || '';
+    // Erstes Kind des <label> ist der Textknoten vor dem Feld - genau der
+    // soll wechseln, das Textfeld daneben bleibt stehen.
+    if (beschriftung) beschriftung.firstChild.nodeValue = b.label;
+  };
+  zeige();
+
+  // Beim Umschalten der Gattung wandert das Feld auf den anderen Block.
+  erzeugen.setzeCallbacks({
+    gattung: (neu) => {
+      art = neu === 'video' ? 'video' : 'bild';
+      zeige();
+    },
+  });
 
   el('stilKnopf').addEventListener('click', () => {
     const feld = el('stilFeld');
@@ -198,7 +243,8 @@ function verdrahteStil(startStil, standardStil, stilDatei) {
     const knopf = el('stilSpeichern');
     knopf.disabled = true;
     try {
-      const { stil } = await api.stilSpeichern(el('stilText').value);
+      const { stil } = await api.stilSpeichern(el('stilText').value, art);
+      bloecke[art].text = stil;
       el('stilText').value = stil;
       knopf.textContent = 'Gespeichert';
       setTimeout(() => { knopf.textContent = 'Speichern'; }, 1500);
@@ -208,14 +254,37 @@ function verdrahteStil(startStil, standardStil, stilDatei) {
   });
 
   el('stilZuruecksetzen').addEventListener('click', async () => {
-    const { stil } = await api.stilSpeichern('');
-    el('stilText').value = stil || standardStil;
+    const { stil } = await api.stilSpeichern('', art);
+    bloecke[art].text = stil || bloecke[art].standard;
+    el('stilText').value = bloecke[art].text;
   });
 }
 
 /** Breitenunterschied der Seitenleiste zwischen offen und schmal. */
 const LEISTE_DELTA = 248 - 68;
 const ANIMATION_MS = 200;
+
+/** OpenRouter-Fussbereich ein- und ausklappen. */
+function verdrahteFuss() {
+  const block = el('fussBlock');
+  const knopf = el('fussKnopf');
+  if (!block || !knopf) return;
+
+  const setze = (zu) => {
+    block.classList.toggle('zu', zu);
+    knopf.setAttribute('aria-expanded', String(!zu));
+    knopf.setAttribute('aria-label', zu ? 'OpenRouter-Bereich aufklappen' : 'OpenRouter-Bereich einklappen');
+  };
+
+  const gespeicherterWert = localStorage.getItem('kynto-fuss-zu');
+  setze(gespeicherterWert === null ? true : gespeicherterWert === '1');
+
+  knopf.addEventListener('click', () => {
+    const zu = !block.classList.contains('zu');
+    setze(zu);
+    localStorage.setItem('kynto-fuss-zu', zu ? '1' : '0');
+  });
+}
 
 /** Seitenleiste ein- und ausklappen. Der Burger selbst bleibt, wo er ist. */
 function verdrahteBurger() {
@@ -228,7 +297,7 @@ function verdrahteBurger() {
     knopf.setAttribute('aria-expanded', String(!zu));
   };
 
-  setze(localStorage.getItem('kynto-leiste-zu') === '1');
+  setze(localStorage.getItem('kynto-leiste-zu') === '1' || localStorage.getItem('kynto-leiste-zu') === null);
 
   knopf.addEventListener('click', () => {
     const zu = !document.body.classList.contains('zu');
@@ -255,7 +324,7 @@ async function los() {
   guthabenStand = start.guthaben;
   zeigeAnbieter(start.anbieter, start.schluessel);
   zeigeVerbrauch(start.verbrauch);
-  verdrahteStil(start.stil, start.standardStil, start.stilDatei);
+  verdrahteStil(start);
 
   // Die Sonderansichten zuerst anmelden: die Seitenleiste zeichnet ihre
   // Reiter samt Zahl mit, und alles steht schon vor dem ersten Aufbau bereit.
@@ -335,6 +404,7 @@ async function los() {
   chat.setzeCallbacks({ fertig: raster.lade, verbrauch: zeigeVerbrauch });
   chat.verdrahte();
 
+  verdrahteFuss();
   verdrahteBurger();
 
   // Live-Verlauf: zeigt auch, was Claude von aussen ausloest.

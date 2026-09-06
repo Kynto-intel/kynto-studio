@@ -81,7 +81,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `umgebung.mjs` | `.env` neben der App lesen. Umgebungsvariable schlaegt Datei |
 | `bibliothek.mjs` | Bestand einsammeln, suchen, Datei ausliefern |
 | `sidecar.mjs` | `bild.png` → `bild.png.json`. Kein zentraler Index, damit Umbenennen und Verschieben im Explorer nichts kaputtmacht |
-| `stil.mjs` | Stil-Block, `bauePrompt()`. Wird bei **jedem** Prompt neu gelesen |
+| `stil.mjs` | ZWEI Stil-Bloecke, Bild und Video, `bauePrompt()` / `bauePromptVideo()`. Wird bei **jedem** Prompt neu gelesen. Bewegung gehoert NICHT hinein, die steht im Prompt |
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |
 | `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert nur Zeichenketten — die Pfadprüfung passiert vorher in der Route |
 | `kosten.mjs` | Verbrauch buchen, gemessene Modellpreise mitschreiben |
@@ -103,7 +103,9 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 einzige Stelle, die `fetch` kennt. Danach: `raster.js` (Galerie),
 `erzeugen.js` (Komponist unten), `chat.js` (Leiste rechts), `detail.js`,
 `texteditor.js` + `vorschau.js`, `verlauf.js` (eine SSE-Verbindung fuer die
-ganze App) + `verlauf-fenster.js`, `ordner.js`, `vorlagen.js`, `referenz.js`,
+ganze App - **hier nie frueh aussteigen**, an dem einen `message`-Empfaenger
+haengt auch das Nachladen der Galerie) + `verlauf-fenster.js`, `ordner.js`,
+`vorlagen.js`, `referenz.js`,
 `auswahl.js` (eigene Menues), `merker.js` (localStorage), `symbole.js`,
 `regie.js` (der Regie-Text, gezeichnet in die Einstellungen).
 
@@ -120,19 +122,29 @@ weitergeht. `raster.js` kennt die Module nicht - studio.js meldet sie mit
 `meldeAnsicht(id, { label, symbol, zahl?, lade?, zeichne })` an. Eine neue
 Ansicht ist damit ein Modul plus drei Zeilen in studio.js.
 
-**Die Seitenleiste hat drei Zonen**, von oben nach unten:
+**Die Seitenleiste hat vier Zonen**, von oben nach unten:
 
 1. `#ordnerListe` - die Ordner des Nutzers. Hier steht nur, was auch auf der
    Platte liegt.
 2. `#systemListe`, nach "Ordner einstellen" - Ansichten, mit denen man
    arbeitet (die Vorlagen).
-3. `#untenListe`, ganz am Ende ueber Guthaben und Verbrauch - was die App
-   selbst betrifft (die Einstellungen).
+3. `.fuss` - OpenRouter, Guthaben, Verbrauch. Laesst sich ueber `#fussKnopf`
+   zuklappen und startet zugeklappt; der Stand steht in `localStorage` unter
+   `kynto-fuss-zu`.
+4. `#untenListe`, ganz zuletzt - was die App selbst betrifft (die
+   Einstellungen). Steht seit 6.9.2026 UNTER dem Fuss, an der Stelle, wo
+   frueher der Verlaufs-Knopf sass.
 
-Gesteuert ueber `platz: 'oben'|'unten'` in `meldeAnsicht`. `margin-top: auto`
-haengt an `#untenListe` und **nicht** am `.fuss`: zwei solche Angaben in
-derselben Spalte teilen sich den freien Platz und schieben beide Bloecke in
-die Mitte.
+Gesteuert ueber `platz: 'oben'|'unten'` in `meldeAnsicht`. **Genau EIN
+`margin-top: auto` in dieser Spalte** - es haengt am `.fuss`. Zwei solche
+Angaben teilen sich den freien Platz und schieben beide Bloecke in die Mitte;
+`.verlauf-knopf` traegt noch eins, das ist aber totes CSS, seit der Knopf aus
+dem HTML raus ist.
+
+**Der Verlauf hat zwei Zeichenwege.** `verlauf-fenster.js` kann ins eigene
+Fenster (`oeffne()`, die Markierung dafuer steht noch im HTML) und ueber
+`zeichneIn(ziel)` in die Einstellungen, wo er als dritter Reiter sitzt.
+Benutzt wird derzeit nur der zweite.
 
 Module reden ueber Rueckruf-Setzer miteinander (`setzeKlickZiel`,
 `setzeAenderungsZiel`), nicht ueber Direktzugriffe. Bitte so lassen.
