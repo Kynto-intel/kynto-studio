@@ -321,6 +321,7 @@ body.zu .ordner-einstellen { display: none; }
 
 /* Ohne Bild: kein kaputtes Bildsymbol, sondern ein Wort. */
 .vl-ohne-bild { font-size: 11px; color: var(--muted); }
+.vl-ohne-bild.fehlt { color: #c2542a; }
 
 /* Der ganze Prompt gehoert nicht ins Raster - zwei Zeilen, dann Schluss. */
 .karte.vorlage .vl-motiv {
@@ -401,30 +402,62 @@ body.zu .ordner-einstellen { display: none; }
 
 .vl-form .vl-motiv-feld { margin: 8px 0 14px; }
 
-.vl-ref-kasten {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-  margin-bottom: 14px;
+/* Referenz und Ergebnis nebeneinander, gleich gross. Nur so sieht man,
+   ob eine Vorlage taugt - der Prompt allein sagt das nicht. Nebeneinander
+   und nicht untereinander, weil der Vergleich der Punkt ist. */
+.vl-bilder {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 4px 0 14px;
+}
+@media (max-width: 760px) {
+  .vl-bilder { grid-template-columns: 1fr; }
 }
 
-.vl-ref-bild {
+.vl-bild { min-width: 0; }
+
+.vl-bild-titel {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--subtext);
+  margin-bottom: 6px;
+}
+
+.vl-bild-rahmen {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  aspect-ratio: 4 / 5;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  justify-content: center;
+  overflow: hidden;
+}
+.vl-bild-rahmen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.vl-bild-fuss {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--subtext);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Der Preis steht ueber dem Knopf, nicht daneben - gelesen werden soll er
+   vorher. Dieselbe Regel wie unten im Komponisten. */
+.vl-schaetzung {
   font-size: 11px;
   color: var(--subtext);
-  word-break: break-all;
-}
-.vl-ref-bild img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  flex: none;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 10px;
 }
 
 /* Erscheint erst beim Ueberfahren: ein Loeschknopf, der immer sichtbar auf

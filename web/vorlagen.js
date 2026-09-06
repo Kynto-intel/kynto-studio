@@ -28,6 +28,17 @@ let offen = null;
 /** Was im offenen Formular steht, bevor gespeichert wurde. */
 let entwurf = null;
 
+/**
+ * Pfad des Bildes aus einem Probelauf im offenen Formular.
+ *
+ * Der Probelauf erzeugt ein echtes Bild und legt es im Zielordner ab - er
+ * ist kein Vorschaumodus. Was er NICHT tut: die Vorlage anfassen. Erst wer
+ * danach auf Speichern klickt, uebernimmt Prompt, Referenz und dieses Bild
+ * als neues Vorschaubild. Genau darum geht es: ausprobieren, ohne die
+ * Vorlage zu verlieren, die bis dahin funktioniert hat.
+ */
+let probelauf = null;
+
 export function setzeLadeZiel(fn) { beiLaden = fn; }
 export function setzeAenderungsZiel(fn) { beiAenderung = fn; }
 
@@ -193,13 +204,59 @@ function karte(v) {
 }
 
 /**
- * Die offene Vorlage zum Aendern.
+ * Ein Bild mit Ueberschrift und Bildunterschrift.
  *
- * Geaendert werden Name, Prompt und Referenzbild - das sind die drei, die
- * sich im Alltag bewegen. Modell, Format und Anzahl bleiben draussen: die
- * haben unten im Komponisten ihre eigenen Menues, und ein zweiter Satz
- * derselben Regler waere ein zweiter Ort mit derselben Wahrheit. Wer sie
- * aendern will, laedt die Vorlage, stellt unten um und sichert neu.
+ * `da` sagt, ob die Datei noch existiert - der Server hat beim Laden
+ * nachgesehen. Ohne die Pruefung stuende hier das kaputte Bildsymbol des
+ * Browsers, und genau das passiert oft: Ergebnisbilder werden aufgeraeumt,
+ * die Vorlage bleibt.
+ */
+function bildKachel({ titel, pfad, da = true, leerText, unterschrift }) {
+  const kasten = document.createElement('div');
+  kasten.className = 'vl-bild';
+
+  const kopf = document.createElement('div');
+  kopf.className = 'vl-bild-titel';
+  kopf.textContent = titel;
+
+  const rahmen = document.createElement('div');
+  rahmen.className = 'vl-bild-rahmen';
+  if (pfad && da) {
+    const bild = document.createElement('img');
+    bild.src = dateiUrl(pfad);
+    bild.alt = titel;
+    bild.loading = 'lazy';
+    rahmen.append(bild);
+  } else {
+    const leer = document.createElement('span');
+    leer.className = 'vl-ohne-bild';
+    leer.textContent = pfad ? 'Datei gelöscht' : leerText;
+    if (pfad) leer.classList.add('fehlt');
+    rahmen.append(leer);
+  }
+
+  const fuss = document.createElement('div');
+  fuss.className = 'vl-bild-fuss';
+  fuss.textContent = pfad || unterschrift;
+  if (pfad) fuss.title = unterschrift;
+
+  kasten.append(kopf, rahmen, fuss);
+  return kasten;
+}
+
+/**
+ * Die offene Vorlage als Arbeitsplatz.
+ *
+ * Oben Name und Prompt, darunter die zwei Bilder nebeneinander - was
+ * reingeht und was rauskam -, dann der Probelauf und erst danach Speichern.
+ * Die Reihenfolge ist Absicht: **erst sehen, dann festschreiben.** Wer
+ * speichern muss, um ausprobieren zu koennen, hat im Fehlerfall eine
+ * kaputte Vorlage und kein gutes Bild.
+ *
+ * Geaendert werden Name, Prompt und Referenzbild - die drei, die sich im
+ * Alltag bewegen. Modell, Format und Anzahl bleiben draussen: die haben
+ * unten im Komponisten ihre eigenen Menues, und ein zweiter Satz derselben
+ * Regler waere ein zweiter Ort mit derselben Wahrheit.
  */
 function formular(ziel) {
   const v = entwurf;
@@ -225,35 +282,36 @@ function formular(ziel) {
   motivFeld.setAttribute('aria-label', 'Prompt der Vorlage');
   motivFeld.addEventListener('input', () => { entwurf.motiv = motivFeld.value; });
 
-  const refKasten = document.createElement('div');
-  refKasten.className = 'vl-ref-kasten';
-
-  const refTitel = document.createElement('div');
-  refTitel.className = 'gr-erklaerung gr-klein';
-  refTitel.textContent = 'Referenzbild — geht als Vorlage an das Bildmodell. '
-    + 'Beim Mockup ist das dein Design.';
-
-  const refBild = document.createElement('div');
-  refBild.className = 'vl-ref-bild';
-  if (v.referenz) {
-    const bild = document.createElement('img');
-    bild.src = dateiUrl(v.referenz);
-    bild.alt = v.referenz;
-    refBild.append(bild);
-    const pfad = document.createElement('span');
-    pfad.textContent = v.referenz;
-    refBild.append(pfad);
-  } else {
-    const leer = document.createElement('span');
-    leer.className = 'vl-ohne-bild';
-    leer.textContent = 'Kein Referenzbild — läuft ohne';
-    refBild.append(leer);
-  }
+  // Die zwei Bilder nebeneinander: was reingeht und was rauskam. Erst so
+  // sieht man, ob eine Vorlage taugt - ein Prompt allein sagt das nicht.
+  const bilder = document.createElement('div');
+  bilder.className = 'vl-bilder';
+  bilder.append(
+    bildKachel({
+      titel: 'Referenzbild',
+      pfad: v.referenz,
+      // Nach einer Bildwahl im Formular ist die Datei frisch gewaehlt und
+      // damit sicher da - referenzDa stammt noch vom Laden der Liste.
+      da: v.referenz === entwurf.referenz ? v.referenzDa !== false : true,
+      leerText: 'Keins — läuft ohne Referenz',
+      unterschrift: 'geht als Vorlage an das Bildmodell',
+    }),
+    bildKachel({
+      titel: probelauf ? 'Probelauf' : 'Zuletzt daraus entstanden',
+      pfad: probelauf || v.miniatur,
+      // Ein Probelauf ist gerade erst entstanden, den gibt es sicher.
+      da: probelauf ? true : v.miniaturDa !== false,
+      leerText: 'Noch nichts erzeugt',
+      unterschrift: probelauf
+        ? 'noch nicht gespeichert — wird beim Speichern das Vorschaubild'
+        : 'das Bild, aus dem diese Vorlage entstanden ist',
+    }),
+  );
 
   const tauschen = document.createElement('button');
   tauschen.type = 'button';
   tauschen.className = 'neben';
-  tauschen.textContent = v.referenz ? 'Anderes Bild wählen' : 'Bild wählen';
+  tauschen.textContent = v.referenz ? 'Anderes Referenzbild' : 'Referenzbild wählen';
   // Der Entwurf bleibt stehen, waehrend man im Bestand sucht - sonst waere
   // ein halb getippter Prompt nach der Bildwahl weg. Zurueck kommt das
   // gewaehlte Bild ueber nimmBild().
@@ -262,20 +320,66 @@ function formular(ziel) {
   const refWeg = document.createElement('button');
   refWeg.type = 'button';
   refWeg.className = 'neben';
-  refWeg.textContent = 'Entfernen';
+  refWeg.textContent = 'Referenz entfernen';
   refWeg.hidden = !v.referenz;
   refWeg.addEventListener('click', () => {
     entwurf.referenz = null;
     zeichneNeu();
   });
 
-  const refKnoepfe = document.createElement('div');
-  refKnoepfe.className = 'stil-knoepfe';
-  refKnoepfe.append(tauschen, refWeg);
-  refKasten.append(refTitel, refBild, refKnoepfe);
-
   const meldung = document.createElement('em');
   meldung.className = 'gr-meldung';
+
+  // Der Preis steht VOR dem Knopf, nicht daneben - man soll ihn gelesen
+  // haben, bevor die Hand am Auslöser ist. Wie unten im Komponisten.
+  const schaetzZeile = document.createElement('div');
+  schaetzZeile.className = 'vl-schaetzung';
+  schaetzZeile.textContent = 'Preis wird geholt …';
+  api.schaetzung({ modell: v.modell, formatId: v.formatId, anzahl: 1, klein: false })
+    .then((s) => {
+      const preis = s.dollar == null
+        ? 'Preis erst nach dem ersten Lauf bekannt'
+        : `${s.dollar < 0.01 ? `${(s.dollar * 100).toFixed(2)} ¢` : `${s.dollar.toFixed(3)} $`}${s.gemessen ? '' : ' geschätzt'}`;
+      schaetzZeile.textContent = `Ein Bild · ${s.masse} → ${s.ziel} · ${preis}`;
+    })
+    .catch(() => { schaetzZeile.textContent = 'Preis nicht abrufbar.'; });
+
+  const probeKnopf = document.createElement('button');
+  probeKnopf.type = 'button';
+  probeKnopf.className = 'fest';
+  probeKnopf.textContent = 'Bild erzeugen';
+  probeKnopf.title = 'Erzeugt EIN Bild mit dem Stand von oben — die Vorlage '
+    + 'bleibt dabei unverändert';
+  probeKnopf.addEventListener('click', async () => {
+    if (!String(entwurf.motiv || '').trim()) {
+      meldung.textContent = 'Ohne Motiv geht nichts.';
+      return;
+    }
+    probeKnopf.disabled = true;
+    probeKnopf.textContent = 'Erzeugt …';
+    meldung.textContent = '';
+    try {
+      // Derselbe Weg wie der Knopf unten im Komponisten: POST /api/erzeugen.
+      // Es gibt keinen zweiten Weg zum Erzeugen, nur einen zweiten Knopf -
+      // und der wird von einem Menschen gedrueckt.
+      const e = await api.erzeugen({
+        motiv: entwurf.motiv,
+        modell: entwurf.modell,
+        formatId: entwurf.formatId,
+        anzahl: 1,
+        klein: false,
+        mitStil: entwurf.mitStil !== false,
+        name: entwurf.dateiname || '',
+        referenz: entwurf.referenz || null,
+      });
+      probelauf = e.erzeugt[0] || null;
+      await zeichneNeu();
+    } catch (fehler) {
+      probeKnopf.disabled = false;
+      probeKnopf.textContent = 'Bild erzeugen';
+      meldung.textContent = fehler.message;
+    }
+  });
 
   const speichern = document.createElement('button');
   speichern.type = 'button';
@@ -287,10 +391,13 @@ function formular(ziel) {
     try {
       // Der ganze Datensatz geht raus, nicht nur die drei Felder: der
       // Server legt die Vorlage anhand der id neu an, und was nicht
-      // mitkommt, waere danach weg.
-      await sichere(entwurf);
+      // mitkommt, waere danach weg. Lief ein Probelauf, wird SEIN Bild das
+      // neue Vorschaubild - sonst zeigte die Karte weiter das alte und man
+      // haette den Unterschied nicht gesehen.
+      await sichere({ ...entwurf, miniatur: probelauf || entwurf.miniatur });
       offen = null;
       entwurf = null;
+      probelauf = null;
       await beiAenderung();
     } catch (fehler) {
       speichern.disabled = false;
@@ -302,17 +409,22 @@ function formular(ziel) {
   abbrechen.type = 'button';
   abbrechen.className = 'neben';
   abbrechen.textContent = 'Abbrechen';
+  // Abbrechen laesst die Vorlage, wie sie war. Das Bild aus einem
+  // Probelauf bleibt trotzdem in der Galerie liegen - es ist erzeugt und
+  // bezahlt, es zu loeschen waere eine Entscheidung, die nur der Mensch
+  // trifft.
   abbrechen.addEventListener('click', async () => {
     offen = null;
     entwurf = null;
+    probelauf = null;
     await beiAenderung();
   });
 
   const knoepfe = document.createElement('div');
   knoepfe.className = 'stil-knoepfe';
-  knoepfe.append(speichern, abbrechen, meldung);
+  knoepfe.append(tauschen, refWeg, probeKnopf, speichern, abbrechen, meldung);
 
-  kasten.append(titel, nameFeld, motivFeld, refKasten, knoepfe);
+  kasten.append(titel, nameFeld, motivFeld, bilder, schaetzZeile, knoepfe);
   ziel.append(kasten);
 }
 
@@ -321,6 +433,7 @@ export function oeffneBearbeiten(id) {
   const v = liste.find((x) => x.id === id);
   if (!v) return;
   offen = id;
+  probelauf = null;
   // Kopie: solange nicht gespeichert ist, bleibt die Liste unberuehrt.
   entwurf = { ...v };
   zeichneNeu();
