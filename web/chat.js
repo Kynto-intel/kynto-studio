@@ -11,6 +11,10 @@
 
 import { api } from './api.js';
 import { baueAuswahl } from './auswahl.js';
+// Nur fuer den Prompt-Vorschlag: der Assistent schreibt in das
+// Vorlagen-Formular, das der Mensch gerade offen hat. Gespeichert wird
+// dadurch nichts - das entscheidet weiterhin der Speichern-Knopf.
+import * as vorlagen from './vorlagen.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -74,7 +78,7 @@ function scrolleAnsEnde() {
 }
 
 /** Eine Zeile "Werkzeug gelaufen" - klein, damit sie nicht ablenkt. */
-function werkzeugZeile(name, ergebnis) {
+function werkzeugZeile(name, ergebnis, eigeneBeschriftung = null) {
   const z = document.createElement('div');
   z.className = 'chat-werkzeug';
   const lesbar = {
@@ -83,8 +87,11 @@ function werkzeugZeile(name, ergebnis) {
     stil_lesen: 'Stil-Block gelesen',
     text_aufs_bild: 'Text aufs Bild gebrannt',
     datei_markieren: 'Datei markiert',
+    vorlage_lesen: 'Vorlagen nachgeschlagen',
+    prompt_vorschlagen: 'Prompt in die offene Vorlage geschrieben',
   }[name] || name;
-  z.textContent = ergebnis?.fehler ? `${lesbar} — ${ergebnis.fehler}` : lesbar;
+  const wort = eigeneBeschriftung || lesbar;
+  z.textContent = ergebnis?.fehler ? `${wort} — ${ergebnis.fehler}` : wort;
   if (ergebnis?.fehler) z.classList.add('fehler');
   el('chatVerlauf').append(z);
   scrolleAnsEnde();
@@ -258,7 +265,23 @@ async function zug() {
 
         denkt.remove();
         if (e.typ === 'text' && e.inhalt) blase('ki', e.inhalt);
-        if (e.typ === 'werkzeug') werkzeugZeile(e.name, e.ergebnis);
+        if (e.typ === 'werkzeug') {
+          // Der Prompt-Vorschlag ist das einzige Werkzeug, das etwas in der
+          // Oberflaeche bewegt. Der Server hat nichts gespeichert - er hat
+          // den Text nur durchgereicht, und hier landet er im offenen
+          // Vorlagen-Formular. Steht keines offen, verpufft er sichtbar.
+          if (e.name === 'prompt_vorschlagen' && e.ergebnis?.vorgeschlagen) {
+            const drin = vorlagen.uebernimmVorschlag(e.ergebnis.vorgeschlagen);
+            if (drin) {
+              werkzeugZeile(e.name, e.ergebnis, 'Prompt in die offene Vorlage geschrieben');
+            } else {
+              werkzeugZeile(e.name, { fehler: 'Text steht unten in der Antwort' },
+                'Prompt vorgeschlagen, aber keine Vorlage offen');
+            }
+          } else {
+            werkzeugZeile(e.name, e.ergebnis);
+          }
+        }
         if (e.typ === 'fehler') {
           const b = blase('ki', e.text);
           b.classList.add('fehler');

@@ -90,7 +90,9 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   you can see which design a template means, and one click in the gallery
   swaps it. Both pictures sit side by side in the edit view — what goes in and what came out — and a **generate** button right there runs one image with the current draft **without saving**, so a template you rely on cannot be ruined by an experiment. Save takes the new picture as the card thumbnail; cancel leaves the template exactly as it was. Below that, every picture that template has produced sits in a grid with its prompt in plain text — one click puts an old prompt back in the field. The preview picture is copied into the template's own store when you save, so tidying up your gallery never leaves a template blank. The assistant can read your templates too, so "make a mockup for
   this design" reuses the setup that already worked instead of inventing a
-  new one.
+  new one — and it can write a rewritten prompt straight into the open
+  template form. That writes nothing to disk: the text sits in the field
+  until you press save.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.

@@ -647,6 +647,24 @@ export function nimmBild(eintrag) {
   if (entwurf) entwurf.referenz = eintrag.pfad;
 }
 
+/**
+ * Einen Prompt-Vorschlag des Assistenten ins offene Formular schreiben.
+ *
+ * Nur ins Feld, nicht auf die Platte: `vorlagen.json` fasst das hier nicht
+ * an. Der Mensch sieht den Text, vergleicht ihn mit dem alten und
+ * entscheidet mit dem Speichern-Knopf. Ist kein Formular offen, passiert
+ * nichts - der Assistent hat den Prompt dann ohnehin in seiner Antwort
+ * stehen.
+ *
+ * Gibt zurueck, ob es angekommen ist, damit der Chat es sagen kann.
+ */
+export function uebernimmVorschlag(text) {
+  if (!entwurf || !String(text || '').trim()) return false;
+  entwurf.motiv = String(text).trim();
+  zeichneNeu();
+  return true;
+}
+
 /** Ist gerade eine Vorlage offen? Fragt studio.js nach der Bildwahl. */
 export function bearbeitetGerade() {
   return offen !== null;
