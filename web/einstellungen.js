@@ -1,4 +1,4 @@
-// Einstellungen: die Tagesgrenzen.
+// Einstellungen: die Tagesgrenzen und die Regie, auf zwei Reitern.
 //
 // Eine Ansicht im Raster, wie die Vorlagen - kein Fenster. Zeichnet sich in
 // dasselbe Raster und meldet Aenderungen sofort an den Server; es gibt
@@ -6,11 +6,19 @@
 // brauchen und ein vergessener Klick sonst die Bremse still ausser Kraft
 // liesse.
 //
-// Die Grenzen sind das Einzige, was hier steht. Modell, Format und Ordner
-// haben ihre eigenen Plaetze - eine Sammelseite fuer alles waere schnell
-// die Seite, auf der man nichts mehr findet.
+// Warum ein Punkt in der Seitenleiste, aber zwei Reiter darin: beides sind
+// Dinge, die man selten anfasst - zwei Eintraege unten waren einer zu viel.
+// Auf einer Seite untereinander wurde es dann zu lang, weil das Regie-Feld
+// allein einen Bildschirm fuellt. Also ein Punkt, zwei Reiter. Modell,
+// Format und Ordner bleiben ganz draussen: die aendert man im Alltag, und
+// die haben ihre eigenen Plaetze.
+//
+// Die Regie zeichnet ihr eigenes Modul (regie.js). Sie haengt hier nur im
+// Raster mit drin, ihre Fachlogik bleibt drueben.
 
 import { api } from './api.js';
+import * as merker from './merker.js';
+import * as regie from './regie.js';
 
 let grenzen = { gesamt: null, bild: null, video: null, chat: null };
 let verbrauch = null;
@@ -25,6 +33,9 @@ export function setzeDaten({ grenzen: g, verbrauch: v } = {}) {
 
 /** Frisch holen - der Verbrauch aendert sich mit jedem Lauf. */
 export async function lade() {
+  // Die Regie holt sich ihren Text selbst - sie kann sich auch im
+  // Texteditor geaendert haben, waehrend die App offen war.
+  await regie.lade();
   try {
     const a = await api.grenzen();
     grenzen = a.grenzen;
@@ -172,12 +183,10 @@ function zeile(feld) {
   return reihe;
 }
 
-export function zeichne(ziel) {
+/** Der Block mit den vier Grenzen. Ohne Ueberschrift - die steht im Reiter. */
+function zeichneGrenzen(ziel) {
   const kasten = document.createElement('div');
   kasten.className = 'einstellungen';
-
-  const titel = document.createElement('h3');
-  titel.textContent = 'Tagesgrenzen';
 
   const erklaerung = document.createElement('p');
   erklaerung.className = 'gr-erklaerung';
@@ -186,7 +195,7 @@ export function zeichne(ziel) {
     + 'API kommt. Feld leer lassen heißt: keine Bremse. Der Tag beginnt um '
     + 'Mitternacht nach der Uhr dieses Rechners neu.';
 
-  kasten.append(titel, erklaerung);
+  kasten.append(erklaerung);
   for (const feld of FELDER) kasten.append(zeile(feld));
 
   const ehrlich = document.createElement('p');
@@ -198,4 +207,56 @@ export function zeichne(ziel) {
   kasten.append(ehrlich);
 
   ziel.append(kasten);
+}
+
+/**
+ * Die beiden Reiter.
+ *
+ * `zeichne` gehoert zum Modul, nicht zur Zeile - deshalb steht die Regie
+ * hier mit ihrer eigenen Funktion drin und nicht als Kopie ihres Inhalts.
+ */
+const REITER = [
+  { id: 'grenzen', label: 'Tagesgrenzen', zeichne: zeichneGrenzen },
+  { id: 'regie', label: 'Regie', zeichne: (ziel) => regie.zeichne(ziel) },
+];
+
+// Ueber den Reload gemerkt: wer an der Regie schreibt, laedt zwischendurch
+// neu und will nicht jedes Mal wieder umschalten. Ein Browser-Wert, kein
+// Serverwert - er steuert nur, was dieses Fenster gerade zeigt.
+let aktiv = merker.hole('einstellungenReiter', 'grenzen',
+  (w) => REITER.some((r) => r.id === w));
+
+export function zeichne(ziel) {
+  const leiste = document.createElement('nav');
+  leiste.className = 'art-reiter einst-reiter';
+  leiste.setAttribute('aria-label', 'Bereich der Einstellungen');
+
+  const inhalt = document.createElement('div');
+  inhalt.className = 'einst-inhalt';
+
+  const male = () => {
+    inhalt.replaceChildren();
+    REITER.find((r) => r.id === aktiv).zeichne(inhalt);
+    for (const knopf of leiste.children) {
+      knopf.setAttribute('aria-current', String(knopf.dataset.id === aktiv));
+    }
+  };
+
+  for (const r of REITER) {
+    const knopf = document.createElement('button');
+    knopf.type = 'button';
+    knopf.className = 'reiter';
+    knopf.dataset.id = r.id;
+    knopf.textContent = r.label;
+    knopf.addEventListener('click', () => {
+      if (aktiv === r.id) return;
+      aktiv = r.id;
+      merker.merke('einstellungenReiter', aktiv);
+      male();
+    });
+    leiste.append(knopf);
+  }
+
+  ziel.append(leiste, inhalt);
+  male();
 }

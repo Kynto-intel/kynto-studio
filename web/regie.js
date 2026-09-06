@@ -1,8 +1,12 @@
 // Regie: was der Assistent ueber das Handwerk weiss.
 //
-// Eine Ansicht im Raster wie die Einstellungen, kein Fenster. Ein einziges
-// Textfeld - hier steht kein Formular, sondern Prosa, die als Ganzes in den
-// Systemhinweis wandert.
+// Zeichnet sich in die Einstellungen hinein, auf deren zweiten Reiter, und
+// hat keinen eigenen Punkt in der Seitenleiste. Eigenes Modul bleibt es
+// trotzdem: die Einstellungen kuemmern sich um Geld, die Regie um Sprache -
+// das sind zwei Aufgaben, auch wenn sie hinter einem Knopf liegen.
+//
+// Ein einziges Textfeld - hier steht kein Formular, sondern Prosa, die als
+// Ganzes in den Systemhinweis wandert.
 //
 // Nicht zu verwechseln mit dem Stil-Block unten im Komponisten. Der geht an
 // das Bildmodell und beschreibt den Look. Was hier steht, geht an das
@@ -35,8 +39,8 @@ export function zeichne(ziel) {
   const kasten = document.createElement('div');
   kasten.className = 'einstellungen';
 
-  // Keine eigene Ueberschrift: das Raster schreibt "Regie" schon darueber,
-  // und zweimal dasselbe Wort untereinander liest sich wie ein Fehler.
+  // Keine eigene Ueberschrift: der Reiter darueber heisst schon "Regie".
+  // Zwei Zeilen mit demselben Wort untereinander waeren nur Fuellung.
   const erklaerung = document.createElement('p');
   erklaerung.className = 'gr-erklaerung';
   erklaerung.textContent = 'Was der Assistent über das Handwerk weiß: wie ein '

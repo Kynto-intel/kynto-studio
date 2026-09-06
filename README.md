@@ -54,7 +54,7 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   searches your library, reads your style block, burns text onto images,
   and **actually looks at the pictures** when the chosen model can see them,
   so it tells you the hands came out wrong instead of guessing.
-  A **Regie** tab holds what it knows about the craft — how a prompt is
+  A **Regie** tab under Settings holds what it knows about the craft — how a prompt is
   built, and that a clip tolerates exactly one motion while everything else
   must be told to hold still. Plain text, edit it whenever it stops being
   true.

@@ -71,7 +71,7 @@ einzige Stelle, die `fetch` kennt. Danach: `raster.js` (Galerie),
 `texteditor.js` + `vorschau.js`, `verlauf.js` (eine SSE-Verbindung fuer die
 ganze App) + `verlauf-fenster.js`, `ordner.js`, `vorlagen.js`, `referenz.js`,
 `auswahl.js` (eigene Menues), `merker.js` (localStorage), `symbole.js`,
-`regie.js` (der Regie-Text als Ansicht).
+`regie.js` (der Regie-Text, gezeichnet in die Einstellungen).
 
 `vorlagen.js` zeichnet die Vorlagen-Karten und haelt die Namenszeile
 (`benennung()`), die auch der Komponist und die Detailansicht benutzen.
@@ -79,7 +79,7 @@ Native `prompt()`- oder `confirm()`-Fenster kommen in dieser App nirgends
 vor - alles bleibt in der Seite.
 
 **Das Raster hat den Bestand und beliebig viele Sonderansichten**
-(derzeit `vorlagen`, `regie` und `einstellungen`); `raster.js` haelt den Zustand.
+(derzeit `vorlagen` und `einstellungen`); `raster.js` haelt den Zustand.
 Sie sind bewusst keine Fenster: ein Dialog ueber der Galerie waere ein
 zweiter Ort, an dem etwas steht, und man muesste ihn zumachen, bevor es
 weitergeht. `raster.js` kennt die Module nicht - studio.js meldet sie mit

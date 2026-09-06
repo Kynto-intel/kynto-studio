@@ -279,18 +279,10 @@ async function los() {
     zeichne: vorlagen.zeichne,
   });
 
-  // Ueber den Einstellungen: die Regie betrifft den Assistenten, nicht das
-  // Geld. Beides gehoert nach unten, weil man beides selten anfasst.
+  // Die Regie zeichnet sich in die Einstellungen hinein, sie hat keine
+  // eigene Ansicht mehr - zwei Punkte fuer Dinge, die man selten anfasst,
+  // waren einer zu viel.
   regie.setzeDaten(start);
-  raster.meldeAnsicht('regie', {
-    label: 'Regie',
-    symbol: '__regie__',
-    titel: 'Regie',
-    platz: 'unten',
-    hinweis: 'Was der Assistent über gute Prompts weiß',
-    lade: regie.lade,
-    zeichne: regie.zeichne,
-  });
 
   einstellungen.setzeDaten(start);
   // Eine geaenderte Grenze aendert sofort, was im Fuss der Leiste steht.

@@ -412,6 +412,18 @@ body.zu .ordner-einstellen { display: none; }
 }
 .einstellungen h3 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .03em; }
 
+/* Reiter der Einstellungen. Gleiche Optik wie Bilder/Videos oben im
+   Raster - zwei Arten von Reitern in einer App waeren eine zu viel.
+   `justify-self: start`, weil die Leiste sonst ueber die ganze Rasterbreite
+   liefe und die zwei Knoepfe verloren darin staenden. */
+.einst-reiter {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-bottom: 18px;
+}
+
+.einst-inhalt { grid-column: 1 / -1; }
+
 /* Regie: ein einziges grosses Textfeld. Was hier steht, ist Prosa fuer
    ein Sprachmodell, keine Formularfelder. */
 .regie-feld {

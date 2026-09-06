@@ -12,8 +12,6 @@ const PFADE = {
   vorlagen: 'M8 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M4 7v12a1 1 0 0 0 1 1h10',
   // Zwei Schieberegler - was hier steht, stellt man ein.
   einstellungen: 'M4 8h10 M18 8h2 M4 16h4 M12 16h8 M16 6v4 M10 14v4',
-  // Filmklappe - hier steht, wie eine Aufnahme gebaut wird.
-  regie: 'M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M3 9l1.5-4.5 17 2.5L20 9 M8 4.8L6.6 9 M13 5.5L11.6 9.4 M17.6 6.2L16.2 9.6',
 };
 
 /** Welches Symbol gehoert zu welchem Ordner? */
@@ -26,7 +24,6 @@ const ZUORDNUNG = {
   // echter Ordner tragen kann.
   __vorlagen__: 'vorlagen',
   __einstellungen__: 'einstellungen',
-  __regie__: 'regie',
 };
 
 export function symbolFuer(ordnerId) {
