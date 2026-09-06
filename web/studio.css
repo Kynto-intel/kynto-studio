@@ -2031,25 +2031,45 @@ body.zu .verlauf-knopf span { display: none; }
 .erzeugt-jetzt:hover { background: var(--accent); color: #14150f; }
 .erzeugt-jetzt:disabled { opacity: .5; cursor: default; }
 
-/* Bild gross ansehen: nur die Datei auf dunklem Grund. Kein Kasten, kein
-   Rahmen, kein Datenblatt - wer hier klickt, will sehen, ob das Bild etwas
-   geworden ist. Alles andere steht in der Detailansicht. */
+/* Bild gross ansehen: nur die Datei, sonst nichts. Kein Kasten, kein
+   Datenblatt - wer hier klickt, will sehen, ob das Bild etwas geworden ist.
+   Alles andere steht in der Detailansicht.
+
+   Die Ecken sind gerundet wie ueberall sonst in der App, damit das grosse
+   Bild aussieht wie die Kachel, aus der es kommt. Der Schatten hebt es vom
+   Grund ab; ohne ihn klebt ein dunkles Bild auf dunklem Hintergrund. */
 .vl-gross {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(8, 9, 10, .94);
+  background: rgba(8, 9, 10, .82);
+  backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 40px;
   cursor: zoom-out;
+  animation: vl-gross-auf .18s ease-out;
 }
+
 .vl-gross img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   display: block;
+  border-radius: var(--radius-gross);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .7);
+  animation: vl-gross-bild .22s cubic-bezier(.2, .8, .3, 1);
+}
+
+@keyframes vl-gross-auf { from { opacity: 0; } }
+@keyframes vl-gross-bild {
+  from { opacity: 0; transform: scale(.965); }
+}
+
+/* Wer Bewegung abgestellt hat, bekommt keine. */
+@media (prefers-reduced-motion: reduce) {
+  .vl-gross, .vl-gross img { animation: none; }
 }
 
 /* Der Zeiger sagt vorher, was passiert. Kein Rahmen beim Ueberfahren - das
