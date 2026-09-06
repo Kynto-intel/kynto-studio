@@ -415,6 +415,16 @@ const routen = {
     }
 
     const vorlage = vorlagen.sichere(koerper);
+
+    // Eigene Kopie des Vorschaubildes anlegen, damit die Vorlage haelt,
+    // wenn das Original spaeter im Explorer verschwindet. Schlaegt es fehl,
+    // ist die Vorlage trotzdem gespeichert - ein fehlendes Vorschaubild
+    // waere aergerlich, ein abgebrochenes Speichern schlimmer.
+    if (vorlage.miniatur) {
+      const quelle = absolut(vorlage.miniatur);
+      if (fs.existsSync(quelle)) await vorlagen.merkeBild(vorlage.id, quelle);
+    }
+
     verlauf.halteFest({
       was: 'vorlage',
       quelle: quelleVon(req),
@@ -499,6 +509,22 @@ const server = http.createServer(async (req, res) => {
       const bytes = await textebene.rendere({
         quellDatei: absolut(pfad), ebenen, maxHoehe,
       });
+      res.writeHead(200, {
+        'content-type': 'image/png',
+        'content-length': bytes.length,
+        'cache-control': 'no-store',
+      });
+      return res.end(bytes);
+    }
+
+    // Das eigene Vorschaubild einer Vorlage. Eigene Route und nicht /datei,
+    // weil die Ablage ausserhalb der Wurzel liegt - hier kommt kein Pfad
+    // von aussen herein, nur eine Kennung, und geliefert wird ausschliesslich
+    // aus daten/vorlagen-bilder/.
+    if (req.method === 'GET' && url.pathname === '/api/vorlage-bild') {
+      const id = url.searchParams.get('id') || '';
+      if (!vorlagen.hatBild(id)) return json(res, 404, { fehler: 'Kein Vorschaubild.' });
+      const bytes = vorlagen.liesBild(id);
       res.writeHead(200, {
         'content-type': 'image/png',
         'content-length': bytes.length,

@@ -29,6 +29,13 @@ im Lauf abgeschossen, es kam nichts zurueck. **1,26 $ fuer nichts.** Wenn
 nicht mit Sicherheit feststeht, dass ein Aufruf vor dem Anbieter abbricht,
 wird er nicht abgeschickt.
 
+Beim Pruefen in der Oberflaeche: **Knoepfe NIE ueber eine CSS-Klasse
+anklicken, immer ueber ihren Text.** Am 6.9.2026 traf ein `button.fest`
+gedachter Speichern-Klick den Erzeugen-Knopf daneben, der dieselbe Klasse
+trug - 1,15 ct fuer ein Bild, das niemand wollte. Was Geld ausgibt, hat
+seitdem eine eigene Klasse (`erzeugt-jetzt`) und steht in einer eigenen
+Zeile bei seinem Preis; wer einen solchen Knopf ergaenzt, macht das genauso.
+
 Was stattdessen geht: alles ohne Anbieter. Server starten, Routen abklopfen,
 `/api/schaetzung`, Fehler VOR dem Anbieter (leeres Motiv, erfundenes Modell),
 Tagesbremse mit vorbelegtem `daten/verbrauch.json`, Oberflaeche im Browser,
@@ -83,7 +90,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `sidecar.mjs` | `bild.png` → `bild.png.json`. Kein zentraler Index, damit Umbenennen und Verschieben im Explorer nichts kaputtmacht. Haelt auch `vorlage` — die Kennung der Vorlage, aus der ein Lauf kam; danach filtert `bestandFuerAnsicht` |
 | `stil.mjs` | ZWEI Stil-Bloecke, Bild und Video, `bauePrompt()` / `bauePromptVideo()`. Wird bei **jedem** Prompt neu gelesen. Bewegung gehoert NICHT hinein, die steht im Prompt |
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |
-| `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert nur Zeichenketten — die Pfadprüfung passiert vorher in der Route |
+| `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert Zeichenketten — die Pfadprüfung passiert vorher in der Route. EINE Ausnahme: das Vorschaubild wird nach `daten/vorlagen-bilder/<id>.png` kopiert, damit eine Vorlage haelt, wenn das Original in der Galerie geloescht wird. Ausgeliefert ueber `GET /api/vorlage-bild?id=…`, das keinen Pfad annimmt |
 | `kosten.mjs` | Verbrauch buchen, gemessene Modellpreise mitschreiben |
 | `preise.mjs` | Live-Preise von OpenRouter, 30 Min Zwischenspeicher |
 | `modelle-bild/-video/-chat.mjs` | reine Kataloge + Nachladen. **Keine** Aufruf-Logik |

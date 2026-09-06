@@ -86,6 +86,20 @@ export async function lade() {
   return liste;
 }
 
+/**
+ * Woher das Vorschaubild einer Vorlage kommt.
+ *
+ * Zuerst die eigene Kopie in der Ablage - die haelt, auch wenn das
+ * Ergebnisbild in der Galerie geloescht wurde. Erst wenn es keine gibt
+ * (Vorlagen von vor dieser Aenderung), die Originaldatei. Ist auch die weg,
+ * kommt null zurueck und der Aufrufer zeigt seinen Leertext.
+ */
+function vorschauUrl(v) {
+  if (v.eigenesBild) return `/api/vorlage-bild?id=${encodeURIComponent(v.id)}`;
+  if (v.miniatur && v.miniaturDa) return dateiUrl(v.miniatur);
+  return null;
+}
+
 /** Motiv fuer die Karte kuerzen - der ganze Prompt gehoert nicht ins Raster. */
 function kurz(text, zeichen = 90) {
   const sauber = String(text || '').replace(/\s+/g, ' ').trim();
@@ -96,18 +110,19 @@ function vorschau(v) {
   const kasten = document.createElement('div');
   kasten.className = 'vorschau';
 
-  // Nur fuer Dateien, die es noch gibt - der Server hat vorher nachgesehen.
-  // Ein <img> auf einen toten Pfad zeigt sonst das kaputte Bildsymbol.
-  if (v.miniatur && v.miniaturDa) {
+  // Eigene Kopie zuerst, Originaldatei als Rueckfall. Ein <img> auf einen
+  // toten Pfad zeigt sonst das kaputte Bildsymbol des Browsers.
+  const url = vorschauUrl(v);
+  if (url) {
     const bild = document.createElement('img');
-    bild.src = dateiUrl(v.miniatur);
+    bild.src = url;
     bild.alt = v.name;
     bild.loading = 'lazy';
     kasten.append(bild);
   } else {
     const leer = document.createElement('span');
     leer.className = 'vl-ohne-bild';
-    leer.textContent = v.miniatur ? 'Bild gelöscht' : 'ohne Bild';
+    leer.textContent = 'ohne Bild';
     kasten.append(leer);
   }
 
@@ -294,12 +309,10 @@ async function schliesseFormular() {
 /**
  * Ein Bild mit Ueberschrift und Bildunterschrift.
  *
- * `da` sagt, ob die Datei noch existiert - der Server hat beim Laden
- * nachgesehen. Ohne die Pruefung stuende hier das kaputte Bildsymbol des
- * Browsers, und genau das passiert oft: Ergebnisbilder werden aufgeraeumt,
- * die Vorlage bleibt.
+ * Bekommt eine fertige URL oder null. Wer sie baut, entscheidet auch, ob
+ * die eigene Kopie oder die Originaldatei gemeint ist - siehe vorschauUrl().
  */
-function bildKachel({ titel, pfad, da = true, leerText, unterschrift }) {
+function bildKachel({ titel, url, leerText, unterschrift }) {
   const kasten = document.createElement('div');
   kasten.className = 'vl-bild';
 
@@ -309,24 +322,22 @@ function bildKachel({ titel, pfad, da = true, leerText, unterschrift }) {
 
   const rahmen = document.createElement('div');
   rahmen.className = 'vl-bild-rahmen';
-  if (pfad && da) {
+  if (url) {
     const bild = document.createElement('img');
-    bild.src = dateiUrl(pfad);
+    bild.src = url;
     bild.alt = titel;
     bild.loading = 'lazy';
     rahmen.append(bild);
   } else {
     const leer = document.createElement('span');
     leer.className = 'vl-ohne-bild';
-    leer.textContent = pfad ? 'Datei gelöscht' : leerText;
-    if (pfad) leer.classList.add('fehlt');
+    leer.textContent = leerText;
     rahmen.append(leer);
   }
 
   const fuss = document.createElement('div');
   fuss.className = 'vl-bild-fuss';
-  fuss.textContent = pfad || unterschrift;
-  if (pfad) fuss.title = unterschrift;
+  fuss.textContent = unterschrift;
 
   kasten.append(kopf, rahmen, fuss);
   return kasten;
@@ -392,24 +403,22 @@ function formular(ziel) {
   bilder.append(
     bildKachel({
       titel: 'Referenzbild',
-      pfad: v.referenz,
-      // Nach einer Bildwahl im Formular ist die Datei frisch gewaehlt und
-      // damit sicher da - referenzDa stammt noch vom Laden der Liste.
-      da: v.referenz === entwurf.referenz ? v.referenzDa !== false : true,
+      url: v.referenz ? dateiUrl(v.referenz) : null,
       leerText: 'Keins — läuft ohne Referenz',
-      unterschrift: 'geht als Vorlage an das Bildmodell',
+      // Bewusst KEINE eigene Kopie: dieses Bild geht an das Bildmodell und
+      // muss dafuer in der Bibliothek liegen. Loescht man es dort, kann die
+      // Vorlage nicht mehr erzeugen - und das soll man sehen.
+      unterschrift: 'geht als Vorlage an das Bildmodell — muss in der Bibliothek bleiben',
     }),
     bildKachel({
       titel: probelauf ? 'Probelauf' : 'Zuletzt daraus entstanden',
-      // Ein geloeschtes Ergebnisbild wird behandelt, als gaebe es keins.
-      // Ein roter Hinweis auf eine Datei, die der Mensch selbst weggeraeumt
-      // hat, ist kein Fund, sondern Laerm.
-      pfad: probelauf || (v.miniaturDa === false ? null : v.miniatur),
-      da: true,
+      // Ein frischer Probelauf liegt in der Galerie, alles andere kommt aus
+      // der eigenen Ablage der Vorlage - die haelt auch nach dem Aufraeumen.
+      url: probelauf ? dateiUrl(probelauf) : vorschauUrl(v),
       leerText: 'Noch nichts erzeugt',
       unterschrift: probelauf
         ? 'noch nicht gespeichert — wird beim Speichern das Vorschaubild'
-        : 'das Bild, aus dem diese Vorlage entstanden ist',
+        : 'eigene Kopie der Vorlage — bleibt, auch wenn du das Original löschst',
     }),
   );
 
@@ -449,9 +458,13 @@ function formular(ziel) {
     })
     .catch(() => { schaetzZeile.textContent = 'Preis nicht abrufbar.'; });
 
+  // EIGENE Klasse, nicht "fest" wie Speichern. Am 6.9.2026 stand er in
+  // derselben Reihe mit derselben Klasse davor - und ein Klick, der
+  // "Speichern" treffen sollte, hat ein Bild erzeugt und Geld gekostet.
+  // Was Geld ausgibt, sieht anders aus und steht woanders.
   const probeKnopf = document.createElement('button');
   probeKnopf.type = 'button';
-  probeKnopf.className = 'fest';
+  probeKnopf.className = 'erzeugt-jetzt';
   probeKnopf.textContent = 'Bild erzeugen';
   probeKnopf.title = 'Erzeugt EIN Bild mit dem Stand von oben — die Vorlage '
     + 'bleibt dabei unverändert';
@@ -524,9 +537,16 @@ function formular(ziel) {
   // trifft.
   abbrechen.addEventListener('click', schliesseFormular);
 
+  // Zwei getrennte Reihen: was Geld ausgibt, steht bei seinem Preis - was
+  // nur Einstellungen sichert, steht darunter. Nicht Kosmetik, sondern der
+  // Abstand zwischen "kostet" und "kostet nicht".
+  const laufZeile = document.createElement('div');
+  laufZeile.className = 'vl-lauf';
+  laufZeile.append(schaetzZeile, probeKnopf);
+
   const knoepfe = document.createElement('div');
   knoepfe.className = 'stil-knoepfe';
-  knoepfe.append(tauschen, refWeg, probeKnopf, speichern, abbrechen, meldung);
+  knoepfe.append(tauschen, refWeg, speichern, abbrechen, meldung);
 
   // Alles, was diese Vorlage schon hervorgebracht hat. Steht ganz unten,
   // weil man es beim Arbeiten nicht braucht - aber wer einen Prompt
@@ -554,7 +574,7 @@ function formular(ziel) {
     verlaufKasten.append(gitter);
   }
 
-  kasten.append(kopf, nameFeld, motivFeld, bilder, schaetzZeile, knoepfe, verlaufKasten);
+  kasten.append(kopf, nameFeld, motivFeld, bilder, laufZeile, knoepfe, verlaufKasten);
   ziel.append(kasten);
 }
 
