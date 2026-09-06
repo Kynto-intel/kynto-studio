@@ -184,12 +184,12 @@ haette ein Loch.
   kommen Umlaute in Pfaden kaputt an.
 - **Nur Modelle mit `tools` in `supported_parameters`** taugen fuer den Chat.
   Ohne Werkzeuge kann der Assistent nichts ausser reden.
-- **"Kann Werkzeuge" heisst nicht "nutzt Werkzeuge".** Der Assistent bietet
-  acht an und bringt ueber 6000 Zeichen Regie mit. Gemessen 6.9.2026 mit
-  genau dieser Last: `gemma4:26b` ruft sauber auf, `gemma4:12b` redet daran
-  vorbei. Bei OpenRouter dasselbe mit `mistral-nemo`. Kleine Modelle
-  bekommen deshalb einen Hinweis in der Auswahl, werden aber nicht
-  ausgeschlossen.
+- **Werkzeugbeschreibungen allein reichen nicht.** Sie sagen, was ein
+  Werkzeug tut, nicht bei welcher Frage man es zieht. Ohne den Abschnitt
+  "WANN DU WAS AUFRUFST" im Systemhinweis antworten schwaechere Modelle aus
+  dem Nichts: gemessen 6.9.2026 hat `gemma4:12b` "wie viele Bilder habe ich"
+  frei erfunden. Mit der Zuordnung ruft dasselbe Modell beim ersten Anlauf
+  sauber auf. Wer ein Werkzeug ergaenzt, ergaenzt dort eine Zeile.
 - **OpenRouter verraet nichts ueber Bild- und Clip-Masse.** Kein einziges der
   52 Bild- und 28 Videomodelle nennt in der Modell-Liste, welche
   Seitenverhaeltnisse, Dauern oder Aufloesungen es annimmt (nachgesehen

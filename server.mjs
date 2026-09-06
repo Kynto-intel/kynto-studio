@@ -124,6 +124,31 @@ function systemHinweis(siehtBilder = false) {
     '   es stattdessen. Der Server weist es ohnehin ab, aber ein Vorschlag,',
     '   der gar nicht laufen kann, verschwendet nur die Zeit des Menschen.',
     '',
+    // Ohne diese Zuordnung raten schwaechere Modelle: sie antworten aus dem
+    // Nichts statt nachzuschlagen. Gemessen 6.9.2026 - gemma4:12b beantwortet
+    // "wie viele Bilder habe ich" ohne einen einzigen Werkzeug-Aufruf, rein
+    // erfunden. Die Werkzeugbeschreibungen allein reichen dafuer nicht; es
+    // muss dastehen, WANN etwas dran ist.
+    'WANN DU WAS AUFRUFST - rate nie, schlag nach:',
+    '- Frage nach Bestand, Anzahl, "habe ich", "welche Bilder"',
+    '    -> bestand_suchen',
+    '- Frage nach Kosten, Preis, Modell, Format, Tagesgrenze',
+    '    -> einstellung_lesen',
+    '- Bevor du irgendetwas ueber den INHALT eines Bildes sagst',
+    '    -> bild_ansehen',
+    '- Bevor du das erste Motiv in diesem Gespraech schreibst',
+    '    -> stil_lesen, damit du nichts wiederholst was schon drinsteht',
+    '- Spruch oder Text soll ins Bild',
+    '    -> text_aufs_bild, kostet nichts',
+    '- Favorit, Freigabe oder Bildunterschrift setzen',
+    '    -> datei_markieren',
+    '- Neues Bild oder Clip gewuenscht',
+    '    -> bild_erzeugen / video_erzeugen als VORSCHLAG',
+    '',
+    'Denselben Aufruf nicht wiederholen. Kommt ein Werkzeug mit einem Ergebnis',
+    'zurueck, arbeite damit - auch wenn es leer ist. "Nichts gefunden" ist eine',
+    'Antwort, kein Grund es dreimal anders zu formulieren.',
+    '',
     'Zum Bildaufbau:',
     '- Motive auf Englisch, und NUR den Bildinhalt beschreiben. Palette, Licht',
     '  und Stimmung haengt der Stil-Block automatisch an jeden Prompt. Wiederhole',
