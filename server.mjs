@@ -399,7 +399,13 @@ const routen = {
 
   // ------------------------------------------------------------- Vorlagen
 
-  'GET /api/vorlagen': async () => ({ vorlagen: vorlagen.mitBestand() }),
+  // Beim Ansehen der Vorlagen fehlende Vorschau-Kopien nachholen. Kostet
+  // nur beim allerersten Mal je Vorlage etwas und macht den Schutz
+  // unabhaengig davon, ob jemand nach dem Erzeugen noch gespeichert hat.
+  'GET /api/vorlagen': async () => {
+    await vorlagen.holeBilderNach(absolut);
+    return { vorlagen: vorlagen.mitBestand() };
+  },
 
   /**
    * Vorlage anlegen oder aendern.
