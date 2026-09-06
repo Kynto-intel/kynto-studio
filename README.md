@@ -88,7 +88,7 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   and says what it could not restore. Name, prompt and reference image can
   be changed afterwards — the reference sits on the card as a thumbnail, so
   you can see which design a template means, and one click in the gallery
-  swaps it. Both pictures sit side by side in the edit view — what goes in and what came out — and a **generate** button right there runs one image with the current draft **without saving**, so a template you rely on cannot be ruined by an experiment. Save takes the new picture as the card thumbnail; cancel leaves the template exactly as it was. The assistant can read your templates too, so "make a mockup for
+  swaps it. Both pictures sit side by side in the edit view — what goes in and what came out — and a **generate** button right there runs one image with the current draft **without saving**, so a template you rely on cannot be ruined by an experiment. Save takes the new picture as the card thumbnail; cancel leaves the template exactly as it was. Below that, every picture that template has produced sits in a grid with its prompt in plain text — one click puts an old prompt back in the field. The assistant can read your templates too, so "make a mockup for
   this design" reuses the setup that already worked instead of inventing a
   new one.
 - **It remembers your setup** — model, format and the two switches survive

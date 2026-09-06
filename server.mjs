@@ -126,18 +126,15 @@ const routen = {
 
   'GET /api/bestand': async (_req, url) => ({
     ...bibliothek.bestandFuerAnsicht({
-      ordner: url.searchParams.get('ordner') || null,
-      art: url.searchParams.get('art') || null,
+      ordner: url.searchParams.get('ordner'),
+      art: url.searchParams.get('art'),
       nurFavoriten: url.searchParams.get('favoriten') === '1',
       suche: url.searchParams.get('suche') || '',
+      vorlage: url.searchParams.get('vorlage') || null,
     }),
     zaehlung: bibliothek.zaehlung(),
   }),
 
-  /**
-   * Kostenschaetzung VOR dem Erzeugen. Nichts wird gerendert.
-   * Gemessene Preise schlagen die Schaetzung aus der Modell-Liste.
-   */
   'POST /api/schaetzung': async (req) => {
     const k = await koerperLesen(req);
     const modell = k.modell || konfig.STANDARD.modellBild;

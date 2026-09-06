@@ -39,6 +39,16 @@ let entwurf = null;
  */
 let probelauf = null;
 
+/**
+ * Was diese Vorlage schon hervorgebracht hat - Bild plus Prompt.
+ *
+ * Kommt aus den Sidecars: jeder Lauf, der ueber eine Vorlage ausgeloest
+ * wurde, traegt deren Kennung im Feld `vorlage`. Deshalb steht hier nur,
+ * was seit dieser Aenderung entstanden ist; aeltere Bilder kennen die
+ * Zuordnung nicht und tauchen nicht auf.
+ */
+let gemacht = [];
+
 export function setzeLadeZiel(fn) { beiLaden = fn; }
 export function setzeAenderungsZiel(fn) { beiAenderung = fn; }
 
@@ -204,6 +214,72 @@ function karte(v) {
 }
 
 /**
+ * Eine Kachel im Gitter der erzeugten Bilder: Bild, Datum, Motiv.
+ *
+ * Das Motiv steht darunter und nicht nur im Titel - wer einen Lauf
+ * wiederholen will, muss lesen koennen, was damals drinstand, ohne erst
+ * irgendwo hinzufahren. Ein Klick uebernimmt es ins Feld oben.
+ */
+function gemachtKachel(e) {
+  const kachel = document.createElement('article');
+  kachel.className = 'vl-gemacht-karte';
+
+  const rahmen = document.createElement('div');
+  rahmen.className = 'vl-bild-rahmen';
+  const bild = document.createElement('img');
+  bild.src = dateiUrl(e.pfad);
+  bild.alt = e.motiv || e.name;
+  bild.loading = 'lazy';
+  rahmen.append(bild);
+
+  const datum = document.createElement('div');
+  datum.className = 'vl-gemacht-datum';
+  datum.textContent = new Date(e.geaendert).toLocaleString('de-DE', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+
+  const motiv = document.createElement('div');
+  motiv.className = 'vl-gemacht-motiv';
+  motiv.textContent = e.motiv || '(kein Motiv gespeichert)';
+  motiv.title = e.prompt || e.motiv || '';
+
+  const nehmen = document.createElement('button');
+  nehmen.type = 'button';
+  nehmen.className = 'neben klein';
+  nehmen.textContent = 'Prompt übernehmen';
+  nehmen.title = 'Schreibt dieses Motiv oben ins Feld — gespeichert wird nichts';
+  nehmen.addEventListener('click', () => {
+    if (!entwurf) return;
+    entwurf.motiv = e.motiv || '';
+    zeichneNeu();
+  });
+
+  kachel.append(rahmen, datum, motiv, nehmen);
+  return kachel;
+}
+
+/** Holt, was ueber die offene Vorlage erzeugt wurde. Fehler bleiben stumm. */
+async function ladeGemacht() {
+  if (!entwurf) return;
+  try {
+    const { eintraege } = await api.bestand({ vorlage: entwurf.id });
+    gemacht = eintraege || [];
+  } catch {
+    gemacht = [];
+  }
+  if (entwurf) await zeichneNeu();
+}
+
+/** Formular zu, Karten wieder her. Verwirft alles Ungespeicherte. */
+async function schliesseFormular() {
+  offen = null;
+  entwurf = null;
+  probelauf = null;
+  gemacht = [];
+  await beiAenderung();
+}
+
+/**
  * Ein Bild mit Ueberschrift und Bildunterschrift.
  *
  * `da` sagt, ob die Datei noch existiert - der Server hat beim Laden
@@ -263,8 +339,23 @@ function formular(ziel) {
   const kasten = document.createElement('div');
   kasten.className = 'einstellungen vl-form';
 
+  // Zurueck ganz oben, nicht nur unten neben Speichern. Der Bereich ist mit
+  // den zwei Bildern und dem Verlauf laenger als der Bildschirm - wer oben
+  // steht, kam sonst nur ueber einen Neustart der App wieder raus.
+  const kopf = document.createElement('div');
+  kopf.className = 'vl-kopf';
+
+  const zurueck = document.createElement('button');
+  zurueck.type = 'button';
+  zurueck.className = 'vl-zurueck';
+  zurueck.textContent = '← Alle Vorlagen';
+  zurueck.title = 'Zurück zur Übersicht — ungespeicherte Änderungen verfallen';
+  zurueck.addEventListener('click', schliesseFormular);
+
   const titel = document.createElement('h3');
   titel.textContent = 'Vorlage bearbeiten';
+
+  kopf.append(zurueck, titel);
 
   const nameFeld = document.createElement('input');
   nameFeld.type = 'text';
@@ -371,8 +462,11 @@ function formular(ziel) {
         mitStil: entwurf.mitStil !== false,
         name: entwurf.dateiname || '',
         referenz: entwurf.referenz || null,
+        // Damit das Bild spaeter unten im Gitter wieder auftaucht.
+        vorlageId: entwurf.id,
       });
       probelauf = e.erzeugt[0] || null;
+      await ladeGemacht();
       await zeichneNeu();
     } catch (fehler) {
       probeKnopf.disabled = false;
@@ -398,6 +492,7 @@ function formular(ziel) {
       offen = null;
       entwurf = null;
       probelauf = null;
+      gemacht = [];
       await beiAenderung();
     } catch (fehler) {
       speichern.disabled = false;
@@ -413,18 +508,39 @@ function formular(ziel) {
   // Probelauf bleibt trotzdem in der Galerie liegen - es ist erzeugt und
   // bezahlt, es zu loeschen waere eine Entscheidung, die nur der Mensch
   // trifft.
-  abbrechen.addEventListener('click', async () => {
-    offen = null;
-    entwurf = null;
-    probelauf = null;
-    await beiAenderung();
-  });
+  abbrechen.addEventListener('click', schliesseFormular);
 
   const knoepfe = document.createElement('div');
   knoepfe.className = 'stil-knoepfe';
   knoepfe.append(tauschen, refWeg, probeKnopf, speichern, abbrechen, meldung);
 
-  kasten.append(titel, nameFeld, motivFeld, bilder, schaetzZeile, knoepfe);
+  // Alles, was diese Vorlage schon hervorgebracht hat. Steht ganz unten,
+  // weil man es beim Arbeiten nicht braucht - aber wer einen Prompt
+  // wiederholen will, findet ihn hier statt im Verlauf.
+  const verlaufKasten = document.createElement('div');
+  verlaufKasten.className = 'vl-gemacht';
+
+  const vTitel = document.createElement('div');
+  vTitel.className = 'vl-bild-titel';
+  vTitel.textContent = gemacht.length
+    ? `Aus dieser Vorlage entstanden (${gemacht.length})`
+    : 'Aus dieser Vorlage entstanden';
+  verlaufKasten.append(vTitel);
+
+  if (!gemacht.length) {
+    const leer = document.createElement('p');
+    leer.className = 'gr-erklaerung gr-klein';
+    leer.textContent = 'Noch nichts — oder die Bilder sind älter als diese '
+      + 'Funktion. Zugeordnet wird erst, was über diese Vorlage erzeugt wurde.';
+    verlaufKasten.append(leer);
+  } else {
+    const gitter = document.createElement('div');
+    gitter.className = 'vl-gemacht-gitter';
+    for (const e of gemacht) gitter.append(gemachtKachel(e));
+    verlaufKasten.append(gitter);
+  }
+
+  kasten.append(kopf, nameFeld, motivFeld, bilder, schaetzZeile, knoepfe, verlaufKasten);
   ziel.append(kasten);
 }
 
@@ -434,9 +550,13 @@ export function oeffneBearbeiten(id) {
   if (!v) return;
   offen = id;
   probelauf = null;
+  gemacht = [];
   // Kopie: solange nicht gespeichert ist, bleibt die Liste unberuehrt.
   entwurf = { ...v };
   zeichneNeu();
+  // Nachreichen: das Formular steht sofort da, das Gitter faellt hinterher
+  // hinein. Ein Ladebalken fuer eine Handvoll Dateien waere Zeremonie.
+  ladeGemacht();
 }
 
 /**

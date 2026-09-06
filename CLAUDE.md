@@ -80,7 +80,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `pfade.mjs` | Pfad-Sicherheit. **Jeder** Lese- und Schreibzugriff geht durch `absolut()` / `pruefeInnerhalb()`. Ausserhalb von `WURZEL` passiert nichts |
 | `umgebung.mjs` | `.env` neben der App lesen. Umgebungsvariable schlaegt Datei |
 | `bibliothek.mjs` | Bestand einsammeln, suchen, Datei ausliefern |
-| `sidecar.mjs` | `bild.png` → `bild.png.json`. Kein zentraler Index, damit Umbenennen und Verschieben im Explorer nichts kaputtmacht |
+| `sidecar.mjs` | `bild.png` → `bild.png.json`. Kein zentraler Index, damit Umbenennen und Verschieben im Explorer nichts kaputtmacht. Haelt auch `vorlage` — die Kennung der Vorlage, aus der ein Lauf kam; danach filtert `bestandFuerAnsicht` |
 | `stil.mjs` | ZWEI Stil-Bloecke, Bild und Video, `bauePrompt()` / `bauePromptVideo()`. Wird bei **jedem** Prompt neu gelesen. Bewegung gehoert NICHT hinein, die steht im Prompt |
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |
 | `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert nur Zeichenketten — die Pfadprüfung passiert vorher in der Route |

@@ -1924,3 +1924,77 @@ body.zu .verlauf-knopf span { display: none; }
   .leiste { left: 0; }
   .detail-inhalt { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------- Vorlage: Kopf und erzeugte Bilder */
+
+/* Zurueck ganz oben. Der Bereich ist mit zwei Bildern und dem Gitter
+   laenger als der Bildschirm - ein Ausgang nur unten heisst, dass man
+   scrollen muss, um wieder wegzukommen. */
+.vl-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.vl-kopf h3 { margin: 0; }
+
+.vl-zurueck {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--subtext);
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vl-zurueck:hover { color: var(--text); border-color: var(--muted); }
+
+.vl-gemacht {
+  margin-top: 26px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+/* Kleiner als die Galerie: hier zaehlt der Ueberblick, nicht das einzelne
+   Bild - dafuer gibt es die Detailansicht. */
+.vl-gemacht-gitter {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.vl-gemacht-karte {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.vl-gemacht-karte .vl-bild-rahmen { aspect-ratio: 4 / 5; }
+
+.vl-gemacht-datum {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Vier Zeilen Motiv, dann Schluss. Genug, um einen Lauf wiederzuerkennen,
+   ohne dass eine Kachel die halbe Seite fuellt - der volle Prompt haengt
+   als Titel dran. */
+.vl-gemacht-motiv {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--subtext);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vl-gemacht-karte .neben.klein {
+  align-self: flex-start;
+  font-size: 10.5px;
+  padding: 4px 8px;
+}

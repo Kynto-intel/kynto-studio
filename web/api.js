@@ -19,12 +19,15 @@ async function ruf(pfad, optionen = {}) {
 export const api = {
   start: () => ruf('/api/start'),
 
-  bestand: ({ ordner, art, nurFavoriten, suche } = {}) => {
+  // vorlage: nur, was ueber diese Vorlage erzeugt wurde. Die Zuordnung
+  // steht im Sidecar, nicht in einem Index.
+  bestand: ({ ordner, art, nurFavoriten, suche, vorlage } = {}) => {
     const p = new URLSearchParams();
     if (ordner) p.set('ordner', ordner);
     if (art) p.set('art', art);
     if (nurFavoriten) p.set('favoriten', '1');
     if (suche) p.set('suche', suche);
+    if (vorlage) p.set('vorlage', vorlage);
     return ruf(`/api/bestand?${p}`);
   },
 
