@@ -373,6 +373,10 @@ async function los() {
     raster.zeigeBestand();
   });
   vorlagen.setzeAenderungsZiel(raster.lade);
+  // Ein Bild im Vorlagen-Gitter oeffnet dieselbe Detailansicht wie ein Bild
+  // in der Galerie - der Eintrag ist schon vollstaendig, es braucht keinen
+  // zweiten Weg dorthin.
+  vorlagen.setzeOeffnenZiel(detail.zeige);
 
   // Ein anderes Referenzbild fuer eine Vorlage aussuchen: kein eigener
   // Bildwaehler, sondern die Galerie, die es schon gibt. Der naechste Klick

@@ -2030,3 +2030,9 @@ body.zu .verlauf-knopf span { display: none; }
 }
 .erzeugt-jetzt:hover { background: var(--accent); color: #14150f; }
 .erzeugt-jetzt:disabled { opacity: .5; cursor: default; }
+
+/* Ein Bild im Vorlagen-Gitter laesst sich gross ansehen. Der Zeiger und der
+   leichte Rahmen beim Ueberfahren sagen das - sonst probiert es niemand. */
+.vl-anklickbar { cursor: pointer; transition: border-color .12s ease; }
+.vl-anklickbar:hover,
+.vl-anklickbar:focus-visible { border-color: var(--accent); outline: none; }

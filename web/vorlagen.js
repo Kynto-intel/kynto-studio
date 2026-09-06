@@ -15,6 +15,7 @@ let liste = [];
 let beiLaden = () => {};
 let beiAenderung = () => {};
 let beiBildwahl = () => {};
+let beiOeffnen = () => {};
 
 /**
  * Welche Vorlage gerade offen ist - `null` heisst: die Karten stehen da.
@@ -61,6 +62,15 @@ export function setzeAenderungsZiel(fn) { beiAenderung = fn; }
  * einen Stelle, an der sie ohnehin schon steht.
  */
 export function setzeBildwahlZiel(fn) { beiBildwahl = fn; }
+
+/**
+ * Was passiert, wenn man ein erzeugtes Bild im Gitter anklickt.
+ *
+ * Dasselbe wie in der Galerie: die Detailansicht. Kein eigener Betrachter -
+ * ein zweiter Weg, ein Bild gross anzusehen, waere ein zweiter Ort mit
+ * denselben Knoepfen (Referenz, Text aufs Bild, Favorit).
+ */
+export function setzeOeffnenZiel(fn) { beiOeffnen = fn; }
 
 /** Startbestand aus /api/start, damit der erste Klick nicht warten muss. */
 export function setzeDaten({ vorlagen = [] } = {}) {
@@ -240,12 +250,21 @@ function gemachtKachel(e) {
   kachel.className = 'vl-gemacht-karte';
 
   const rahmen = document.createElement('div');
-  rahmen.className = 'vl-bild-rahmen';
+  rahmen.className = 'vl-bild-rahmen vl-anklickbar';
+  rahmen.tabIndex = 0;
+  rahmen.setAttribute('role', 'button');
+  rahmen.title = 'Groß ansehen';
   const bild = document.createElement('img');
   bild.src = dateiUrl(e.pfad);
   bild.alt = e.motiv || e.name;
   bild.loading = 'lazy';
   rahmen.append(bild);
+
+  const gross = () => beiOeffnen(e);
+  rahmen.addEventListener('click', gross);
+  rahmen.addEventListener('keydown', (t) => {
+    if (t.key === 'Enter' || t.key === ' ') { t.preventDefault(); gross(); }
+  });
 
   const datum = document.createElement('div');
   datum.className = 'vl-gemacht-datum';
