@@ -339,12 +339,25 @@ async function los() {
     raster.zeigeBestand();
   });
   vorlagen.setzeAenderungsZiel(raster.lade);
+
+  // Ein anderes Referenzbild fuer eine Vorlage aussuchen: kein eigener
+  // Bildwaehler, sondern die Galerie, die es schon gibt. Der naechste Klick
+  // darin geht einmalig an die Vorlage statt an die Detailansicht.
+  let waehltBild = false;
+  vorlagen.setzeBildwahlZiel(() => {
+    waehltBild = true;
+    raster.zeigeBestand();
+  });
+
   raster.meldeAnsicht('vorlagen', {
     label: 'Vorlagen',
     symbol: '__vorlagen__',
     hinweis: 'Gespeicherte Läufe — anklicken lädt sie in den Komponisten',
     zahl: () => vorlagen.anzahl(),
-    lade: vorlagen.lade,
+    // Wer von Hand hierher zurueckkehrt, hat die Bildwahl abgebrochen -
+    // sonst bliebe sie scharf und der naechste Klick in der Galerie ginge
+    // ins Leere statt in die Detailansicht.
+    lade: async () => { waehltBild = false; await vorlagen.lade(); },
     zeichne: vorlagen.zeichne,
   });
 
@@ -372,7 +385,15 @@ async function los() {
   });
 
   raster.baueOrdnerListe(start.ordner, start.zaehlung);
-  raster.setzeKlickZiel(detail.zeige);
+  raster.setzeKlickZiel((eintrag) => {
+    if (waehltBild && vorlagen.bearbeitetGerade()) {
+      waehltBild = false;
+      vorlagen.nimmBild(eintrag);
+      raster.zeigeAnsicht('vorlagen');
+      return;
+    }
+    detail.zeige(eintrag);
+  });
   raster.verdrahte();
   detail.setzeAenderungsZiel(raster.lade);
   detail.setzeReferenzZiel(referenz.setze);

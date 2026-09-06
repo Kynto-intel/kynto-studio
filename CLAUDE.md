@@ -109,8 +109,11 @@ haengt auch das Nachladen der Galerie) + `verlauf-fenster.js`, `ordner.js`,
 `auswahl.js` (eigene Menues), `merker.js` (localStorage), `symbole.js`,
 `regie.js` (der Regie-Text, gezeichnet in die Einstellungen).
 
-`vorlagen.js` zeichnet die Vorlagen-Karten und haelt die Namenszeile
-(`benennung()`), die auch der Komponist und die Detailansicht benutzen.
+`vorlagen.js` zeichnet die Vorlagen-Karten, das Bearbeiten-Formular und
+haelt die Namenszeile (`benennung()`), die auch der Komponist und die
+Detailansicht benutzen. Ein anderes Referenzbild wird NICHT ueber einen
+eigenen Bildwaehler gesucht, sondern ueber die Galerie: studio.js faengt
+den naechsten Klick darin einmalig ab und schickt ihn an die Vorlage.
 Native `prompt()`- oder `confirm()`-Fenster kommen in dieser App nirgends
 vor - alles bleibt in der Seite.
 

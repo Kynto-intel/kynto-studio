@@ -84,6 +84,18 @@ export function zeigeBestand() {
   return lade();
 }
 
+/**
+ * Zu einer gemeldeten Ansicht umschalten, ohne dass jemand den Reiter
+ * anklickt. Gebraucht fuer Hin und Zurueck: Wer in einer Vorlage ein
+ * anderes Referenzbild waehlt, landet im Bestand und soll danach von
+ * allein wieder bei den Vorlagen stehen.
+ */
+export function zeigeAnsicht(id) {
+  if (!ansichten.has(id)) return Promise.resolve();
+  ansicht = id;
+  return lade();
+}
+
 export function baueOrdnerListe(ordner, zaehlung) {
   ordnerDefs = ordner;
   letzteZaehlung = zaehlung || letzteZaehlung;

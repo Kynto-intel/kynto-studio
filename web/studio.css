@@ -333,8 +333,100 @@ body.zu .ordner-einstellen { display: none; }
   overflow: hidden;
 }
 
-.karte.vorlage .vl-referenz { font-size: 10px; color: var(--subtext); }
+/* Das Referenzbild als Miniatur neben seinem Namen. Beim Mockup ist das
+   Design die halbe Vorlage - "mit Referenzbild" haette nicht gesagt,
+   welches gemeint war. */
+.karte.vorlage .vl-referenz {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--subtext);
+  margin-top: 4px;
+}
+.karte.vorlage .vl-referenz img {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  flex: none;
+}
+.karte.vorlage .vl-referenz span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .karte.vorlage .vl-referenz.fehlt { color: #c2542a; }
+
+/* Wie der Loeschknopf: erst beim Ueberfahren, damit die Karte ruhig bleibt.
+   Links davon, weil rechts das x sitzt. */
+.vl-stift {
+  position: absolute;
+  top: 8px;
+  right: 40px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(18, 19, 20, .85);
+  color: var(--subtext);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.karte.vorlage:hover .vl-stift,
+.karte.vorlage:focus-within .vl-stift { opacity: 1; }
+.vl-stift:hover { color: var(--text); border-color: var(--muted); }
+
+/* ------------------------------------------ Vorlage bearbeiten */
+
+.vl-form { max-width: 640px; }
+
+.vl-form .vl-name {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 10px;
+  margin: 10px 0 4px;
+}
+.vl-form .vl-name:focus { outline: none; border-color: var(--muted); }
+
+.vl-form .vl-motiv-feld { margin: 8px 0 14px; }
+
+.vl-ref-kasten {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.vl-ref-bild {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 11px;
+  color: var(--subtext);
+  word-break: break-all;
+}
+.vl-ref-bild img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  flex: none;
+}
 
 /* Erscheint erst beim Ueberfahren: ein Loeschknopf, der immer sichtbar auf
    jeder Kachel klebt, wird irgendwann versehentlich getroffen. */

@@ -85,7 +85,12 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   press the button. Save from the hint right after a run, or from the detail
   view of any picture that is already there, because the sidecar knows the
   same things. If a file has gone missing since, the template still loads
-  and says what it could not restore.
+  and says what it could not restore. Name, prompt and reference image can
+  be changed afterwards — the reference sits on the card as a thumbnail, so
+  you can see which design a template means, and one click in the gallery
+  swaps it. The assistant can read your templates too, so "make a mockup for
+  this design" reuses the setup that already worked instead of inventing a
+  new one.
 - **It remembers your setup** — model, format and the two switches survive
   a reload. The number of images is the deliberate exception: it always
   starts at 1, so a forgotten "6×" never spends six times the money.
