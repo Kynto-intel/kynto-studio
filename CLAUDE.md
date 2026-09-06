@@ -57,6 +57,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `preise.mjs` | Live-Preise von OpenRouter, 30 Min Zwischenspeicher |
 | `modelle-bild/-video/-chat.mjs` | reine Kataloge + Nachladen. **Keine** Aufruf-Logik |
 | `anbieter-openrouter-*.mjs` | die Aufrufe. Kennen kein Dateisystem, bekommen Bytes, liefern Bytes |
+| `ollama.mjs` | lokaler Chat. Erkennung, Katalog und Aufruf in EINER Datei - Ausnahme zur Trennung unten, begruendet im Kopf der Datei. Laeuft Ollama nicht, ist die Liste leer und niemand merkt etwas |
 | `werkzeuge.mjs` | was der Assistent darf. Siehe unten |
 | `format.mjs`, `text.mjs`, `schriften.mjs` | die drei PowerShell-Kapseln |
 | `verlauf.mjs` | Verlauf + Server-Sent-Events an offene Fenster |
@@ -183,6 +184,12 @@ haette ein Loch.
   kommen Umlaute in Pfaden kaputt an.
 - **Nur Modelle mit `tools` in `supported_parameters`** taugen fuer den Chat.
   Ohne Werkzeuge kann der Assistent nichts ausser reden.
+- **"Kann Werkzeuge" heisst nicht "nutzt Werkzeuge".** Der Assistent bietet
+  acht an und bringt ueber 6000 Zeichen Regie mit. Gemessen 6.9.2026 mit
+  genau dieser Last: `gemma4:26b` ruft sauber auf, `gemma4:12b` redet daran
+  vorbei. Bei OpenRouter dasselbe mit `mistral-nemo`. Kleine Modelle
+  bekommen deshalb einen Hinweis in der Auswahl, werden aber nicht
+  ausgeschlossen.
 - **OpenRouter verraet nichts ueber Bild- und Clip-Masse.** Kein einziges der
   52 Bild- und 28 Videomodelle nennt in der Modell-Liste, welche
   Seitenverhaeltnisse, Dauern oder Aufloesungen es annimmt (nachgesehen
@@ -219,7 +226,9 @@ haette ein Loch.
 
 - Neue Fachlogik gehoert in `lib/`, nicht in `server.mjs`.
 - Neuer Anbieter: `lib/anbieter-openrouter-bild.mjs` als Vorlage nehmen,
-  Katalog getrennt in ein `modelle-*.mjs`.
+  Katalog getrennt in ein `modelle-*.mjs`. Ausnahme: `ollama.mjs` haelt
+  beides, weil der Katalog dort drei Zeilen ist - "frag den Dienst, was
+  installiert ist" - und keine gepflegte Datenliste.
 - Neue Route: Eintrag in `routen` in `server.mjs`, Aufruf in `web/api.js`.
 - Alles, was Geld kostet oder Dateien schreibt, wandert in den Verlauf
   (`verlauf.halteFest`) – mit `quelle`, damit man sieht, wer es ausgeloest hat.

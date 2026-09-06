@@ -14,6 +14,7 @@ import * as bibliothek from './lib/bibliothek.mjs';
 import * as chat from './lib/anbieter-openrouter-chat.mjs';
 import * as chatverlauf from './lib/chatverlauf.mjs';
 import * as modelleChat from './lib/modelle-chat.mjs';
+import * as ollama from './lib/ollama.mjs';
 import * as werkzeuge from './lib/werkzeuge.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
@@ -182,19 +183,30 @@ async function fuehreGespraech(req, res) {
     return res.end();
   }
 
-  // Auch Reden kostet. Ist das Assistenten-Limit erreicht, faengt der Zug
-  // gar nicht erst an - sonst waere die Bremse eine, die nur die teuren
-  // Sachen bremst und beim Dauerreden zusieht.
-  try {
-    kosten.pruefe('chat');
-  } catch (fehler) {
-    sende(res, { typ: 'fehler', text: fehler.message });
-    return res.end();
+  // Laeuft das Modell hier auf dem Rechner oder ueber OpenRouter? Davon
+  // haengt alles Weitere ab: welcher Anbieter gefragt wird, ob die
+  // Tagesgrenze greift und ob etwas gebucht wird.
+  const lokal = ollama.istLokal(modell);
+  const anbieter = lokal ? ollama : chat;
+
+  // Auch Reden kostet - aber nur ueber OpenRouter. Ein lokales Modell
+  // rechnet auf der eigenen Karte; die Bremse waere dort eine, die nichts
+  // bremst ausser der Lust weiterzuarbeiten.
+  if (!lokal) {
+    try {
+      kosten.pruefe('chat');
+    } catch (fehler) {
+      sende(res, { typ: 'fehler', text: fehler.message });
+      return res.end();
+    }
   }
 
   // Nur Modelle mit Bildeingang bekommen bild_ansehen angeboten. Ein reines
   // Textmodell wuerde es sonst aufrufen und nichts damit anfangen koennen.
-  const modellInfo = (await modelleChat.alle()).find((m) => m.id === modell);
+  // Ollama sagt seine Faehigkeiten selbst, OpenRouter ueber die Modell-Liste.
+  const modellInfo = lokal
+    ? (await ollama.alle()).find((m) => m.id === modell)
+    : (await modelleChat.alle()).find((m) => m.id === modell);
   const siehtBilder = Boolean(modellInfo?.siehtBilder);
 
   const mitSystem = [{ role: 'system', content: systemHinweis(siehtBilder) }, ...nachrichten];
@@ -202,13 +214,16 @@ async function fuehreGespraech(req, res) {
 
   try {
     for (let runde = 1; runde <= chat.MAX_RUNDEN; runde++) {
-      const { nachricht, kosten: preis } = await chat.frage({
+      const { nachricht, kosten: preis } = await anbieter.frage({
         nachrichten: mitSystem,
         modell,
         werkzeuge: werkzeuge.schema({ siehtBilder }),
       });
 
-      if (preis) {
+      // Lokale Laeufe kosten nichts und werden nicht gebucht - sonst
+      // stuende in der Preistabelle ein Modell mit Schnitt 0, das jede
+      // Statistik daneben aussehen laesst.
+      if (preis && !lokal) {
         dollarGesamt += preis;
         kosten.buche({ dollar: preis, modell, chat: true });
       }
@@ -646,7 +661,7 @@ const routen = {
     const vollstaendig = url.searchParams.get('alle') === '1';
     return {
       modelle: vollstaendig
-        ? await modelleChat.alle()
+        ? [...await ollama.alle(), ...await modelleChat.alle()]
         : await modelleChat.empfohlen(konfig.STANDARD.chatModell),
       vollstaendig,
       gesamt: (await modelleChat.alle()).length,

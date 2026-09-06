@@ -62,7 +62,9 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   format and price — you click. Paid tools have no execute path on the
   server at all, so a chatty model cannot spend your money. It never picks
   a model either: what you set in the app is what renders. Any of
-  OpenRouter's ~360 tool-capable text models can run it; a turn costs about
+  OpenRouter's ~360 tool-capable text models can run it - or a local one
+  through **Ollama**, found automatically, costing nothing and leaving
+  nothing on the machine. A remote turn costs about
   a third of a cent, and the conversation is kept in `daten/chat.json`.
 - **Daily spending limits** — four of them: everything together, images,
   video, and the assistant. Once a limit is reached nothing more is
