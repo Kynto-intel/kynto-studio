@@ -258,16 +258,28 @@ function gemachtKachel(e) {
   return kachel;
 }
 
-/** Holt, was ueber die offene Vorlage erzeugt wurde. Fehler bleiben stumm. */
+/**
+ * Holt, was ueber die offene Vorlage erzeugt wurde. Fehler bleiben stumm.
+ *
+ * Gefiltert wird ZWEIMAL: der Server kennt `?vorlage=`, und hier wird das
+ * Ergebnis noch einmal geprueft. Doppelt gemoppelt mit Grund - laeuft der
+ * Server noch mit einem aelteren Stand, ignoriert er den Parameter und
+ * schickt den ganzen Bestand. Ohne die zweite Pruefung stuenden dann alle
+ * Bilder des Nutzers unter "aus dieser Vorlage entstanden", und das ist
+ * schlimmer als eine leere Liste: es behauptet etwas Falsches.
+ * (Genau so passiert am 6.9.2026 - eine brandneue Vorlage zeigte 5.)
+ */
 async function ladeGemacht() {
   if (!entwurf) return;
+  const id = entwurf.id;
   try {
-    const { eintraege } = await api.bestand({ vorlage: entwurf.id });
-    gemacht = eintraege || [];
+    const { eintraege } = await api.bestand({ vorlage: id });
+    gemacht = (eintraege || []).filter((e) => e.vorlage === id);
   } catch {
     gemacht = [];
   }
-  if (entwurf) await zeichneNeu();
+  // Zwischendurch geschlossen? Dann nichts mehr zeichnen.
+  if (entwurf && entwurf.id === id) await zeichneNeu();
 }
 
 /** Formular zu, Karten wieder her. Verwirft alles Ungespeicherte. */
@@ -389,9 +401,11 @@ function formular(ziel) {
     }),
     bildKachel({
       titel: probelauf ? 'Probelauf' : 'Zuletzt daraus entstanden',
-      pfad: probelauf || v.miniatur,
-      // Ein Probelauf ist gerade erst entstanden, den gibt es sicher.
-      da: probelauf ? true : v.miniaturDa !== false,
+      // Ein geloeschtes Ergebnisbild wird behandelt, als gaebe es keins.
+      // Ein roter Hinweis auf eine Datei, die der Mensch selbst weggeraeumt
+      // hat, ist kein Fund, sondern Laerm.
+      pfad: probelauf || (v.miniaturDa === false ? null : v.miniatur),
+      da: true,
       leerText: 'Noch nichts erzeugt',
       unterschrift: probelauf
         ? 'noch nicht gespeichert — wird beim Speichern das Vorschaubild'
