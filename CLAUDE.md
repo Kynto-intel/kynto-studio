@@ -238,7 +238,9 @@ haette ein Loch.
   (`preise.TOKEN_PRO_BILD`). Fuer Video liefert OpenRouter gar keinen Preis,
   dort hilft nur messen.
 - **Tagesgrenze nach lokaler Uhr**, nicht `toISOString()`. Sonst zaehlt die
-  App zwischen Mitternacht und 02:00 noch auf gestern.
+  App zwischen Mitternacht und 02:00 noch auf gestern. Dasselbe gilt fuer
+  `verlauf_lesen` mit `tag: "heute"` - im Verlauf steht UTC, und ein Bild um
+  00:20 Ortszeit traegt dort das Datum von gestern.
 - **PowerShell 5.1 liest BOM-lose Dateien als ANSI.** Deshalb in `start.ps1`
   `[System.IO.File]::ReadAllText(..., UTF8)` statt `Get-Content` – sonst
   kommen Umlaute in Pfaden kaputt an.
@@ -257,7 +259,10 @@ haette ein Loch.
   liest `anbieter-openrouter-bild.mjs` die erlaubten Werte deshalb aus der
   Ablehnung. Fuer Dauer und Aufloesung stehen feste Listen in
   `konfig.VIDEO_DAUERN` / `VIDEO_AUFLOESUNGEN` - ohne Selbstkorrektur, weil
-  ein Clip zu teuer ist, um den Fall zum Ausprobieren zu rendern.
+  ein Clip zu teuer ist, um den Fall zum Ausprobieren zu rendern. Was aus
+  einer Ablehnung gelernt wurde, liegt seit 7.9.2026 in `daten/gelernt.json`
+  (`gelernt.mjs`) und ueberlebt den Neustart; bei Video steht es vor dem
+  Klick in `/api/schaetzung`.
 - **Zwei Text-Renderer, die identisch bleiben muessen:** `web/vorschau.js`
   zeichnet sofort im Browser, `skripte/text.ps1` rendert die Wahrheit auf dem
   Server. Gleicher Umbruch, gleiche relative Masse, gleicher Rand von 6 %.
