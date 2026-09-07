@@ -18,11 +18,15 @@ import { api } from './api.js';
 let text = '';
 let standard = '';
 let datei = '';
+let fassungen = 0;
+let verlaufOrdner = '';
 
-export function setzeDaten({ regie, standardRegie, regieDatei } = {}) {
+export function setzeDaten({ regie, standardRegie, regieDatei, textVerlauf } = {}) {
   text = regie || '';
   standard = standardRegie || '';
   datei = regieDatei || '';
+  fassungen = textVerlauf?.regie || 0;
+  verlaufOrdner = textVerlauf?.ordner || '';
 }
 
 /** Frisch holen - die Datei laesst sich auch im Editor aendern. */
@@ -113,6 +117,23 @@ export function zeichne(ziel) {
       setTimeout(() => { pfad.textContent = alt; }, 1600);
     });
     kasten.append(pfad);
+  }
+
+  // Wie viele frueheren Fassungen aufgehoben sind. Ein Archiv, das man
+  // nicht kennt, hilft im Ernstfall nicht.
+  if (fassungen) {
+    const alt = document.createElement('div');
+    alt.className = 'stil-pfad stil-fassungen';
+    alt.textContent = fassungen + ' frühere '
+      + (fassungen === 1 ? 'Fassung' : 'Fassungen') + ' aufgehoben — ' + verlaufOrdner;
+    alt.title = 'Klicken zum Kopieren — hier liegen die früheren Fassungen';
+    alt.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(verlaufOrdner);
+      const vorher = alt.textContent;
+      alt.textContent = 'Ordner kopiert';
+      setTimeout(() => { alt.textContent = vorher; }, 1600);
+    });
+    kasten.append(alt);
   }
 
   ziel.append(kasten);

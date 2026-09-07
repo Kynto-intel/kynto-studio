@@ -2077,3 +2077,7 @@ body.zu .verlauf-knopf span { display: none; }
    war ein Rahmen zu viel auf einem Bild, das fuer sich stehen soll. */
 .vl-anklickbar { cursor: zoom-in; }
 .vl-anklickbar:focus-visible { outline: 1px solid var(--muted); }
+
+/* Die Zeile mit den aufgehobenen Fassungen. Leiser als der Dateipfad
+   darueber - man braucht sie selten, aber dann sofort. */
+.stil-fassungen { color: var(--muted); margin-top: 2px; }

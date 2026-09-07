@@ -215,6 +215,20 @@ function verdrahteStil(start) {
     setTimeout(() => { pfad.textContent = alt; }, 1600);
   });
 
+  // Wie viele frueheren Fassungen aufgehoben sind. Ohne diese Zeile wuesste
+  // niemand, dass der Ordner existiert - und ein Archiv, das man nicht
+  // kennt, hilft im Ernstfall nicht.
+  const fassungen = document.createElement('div');
+  fassungen.className = 'stil-pfad stil-fassungen';
+  fassungen.title = 'Klicken zum Kopieren — hier liegen die früheren Fassungen';
+  fassungen.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(start.textVerlauf?.ordner || '');
+    const alt = fassungen.textContent;
+    fassungen.textContent = 'Ordner kopiert';
+    setTimeout(() => { fassungen.textContent = alt; }, 1600);
+  });
+  pfad.after(fassungen);
+
   const zeige = () => {
     const b = bloecke[art];
     el('stilText').value = b.text;
@@ -222,6 +236,14 @@ function verdrahteStil(start) {
     // Erstes Kind des <label> ist der Textknoten vor dem Feld - genau der
     // soll wechseln, das Textfeld daneben bleibt stehen.
     if (beschriftung) beschriftung.firstChild.nodeValue = b.label;
+
+    const n = art === 'video'
+      ? start.textVerlauf?.stilVideo
+      : start.textVerlauf?.stil;
+    fassungen.textContent = n
+      ? `${n} frühere ${n === 1 ? 'Fassung' : 'Fassungen'} aufgehoben — ${start.textVerlauf.ordner}`
+      : '';
+    fassungen.hidden = !n;
   };
   zeige();
 

@@ -24,6 +24,7 @@ import * as modelleChat from './lib/modelle-chat.mjs';
 import * as ollama from './lib/ollama.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
+import * as textverlauf from './lib/textverlauf.mjs';
 import * as regie from './lib/regie.mjs';
 import * as kosten from './lib/kosten.mjs';
 import * as format from './lib/format.mjs';
@@ -117,6 +118,14 @@ const routen = {
     standardRegie: regie.STANDARD_REGIE,
     regieDatei: regie.REGIE_DATEI,
     stilDatei: stil.STIL_DATEI,
+    // Wie viele frueheren Fassungen aufgehoben sind. Ohne die Angabe in der
+    // Oberflaeche wuesste niemand, dass es den Ordner ueberhaupt gibt.
+    textVerlauf: {
+      ordner: textverlauf.VERLAUF_ORDNER,
+      stil: textverlauf.fassungen('stil-block').length,
+      stilVideo: textverlauf.fassungen('stil-block-video').length,
+      regie: textverlauf.fassungen('regie').length,
+    },
     verbrauch: kosten.stand(),
     zaehlung: bibliothek.zaehlung(),
 
