@@ -295,9 +295,9 @@ The code is deliberately plain: no build step, no framework, no dependencies.
 Each module does one thing, `server.mjs` only routes, all logic lives in
 `lib/`. Please keep it that way.
 
-Comments explain *why*, not *what* — especially where something works around a
-real quirk that cost hours to find. There are a few of those and they are
-worth reading before touching the rendering code.
+The rules in full, and what to check before opening a pull request, are in
+**[CONTRIBUTING.md](CONTRIBUTING.md)**. Found a security issue? Please do not
+open a public issue — see **[SECURITY.md](SECURITY.md)**.
 
 ---
 

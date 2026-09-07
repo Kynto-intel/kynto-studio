@@ -1,0 +1,86 @@
+name: Bug report
+description: Something does not work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not report security issues here — see
+        [SECURITY.md](https://github.com/Kynto-intel/kynto-studio/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: was
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+      placeholder: |
+        I clicked ... and expected ..., but ... happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: meldung
+    attributes:
+      label: The error message
+      description: >
+        The real one, in full. From the PowerShell window where the server
+        runs, and from the browser console (F12 → Console) if the interface
+        misbehaved. "It said something about a path" is not enough to go on.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: "`node --version`"
+      placeholder: v20.11.0
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "Settings → System → About, or `winver`"
+      placeholder: Windows 11 Pro 24H2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Which part
+      options:
+        - Generating images
+        - Video / clips
+        - Text on images
+        - The assistant / chat
+        - Templates
+        - Library, search, folders
+        - Settings, limits, style block
+        - Setup and start
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: modell
+    attributes:
+      label: Which model
+      description: Only if it is about generating. Some quirks belong to one model.
+      placeholder: google/gemini-3.1-flash-image
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: geld
+    attributes:
+      label: Cost
+      description: >
+        This matters for how the bug gets reproduced — reproducing something
+        that costs money takes more care than reproducing something free.
+      options:
+        - label: Reproducing this costs money (it generates an image or a clip)
+          required: false
