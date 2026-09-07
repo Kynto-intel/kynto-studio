@@ -88,6 +88,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `umgebung.mjs` | `.env` neben der App lesen. Umgebungsvariable schlaegt Datei |
 | `bibliothek.mjs` | Bestand einsammeln, suchen, Datei ausliefern |
 | `sidecar.mjs` | `bild.png` → `bild.png.json`. Kein zentraler Index, damit Umbenennen und Verschieben im Explorer nichts kaputtmacht. Haelt auch `vorlage` — die Kennung der Vorlage, aus der ein Lauf kam; danach filtert `bestandFuerAnsicht` |
+| `gelernt.mjs` | was die App aus Ablehnungen gelernt hat, in `daten/gelernt.json`: welches Seitenverhaeltnis ein Bildmodell statt des gewuenschten nimmt, welche Aufloesungen ein Videomodell annimmt. Eingetragen wird NUR, was ein Anbieter woertlich abgelehnt hat — nie eine Vermutung. Wird einmal gelesen und dann im Speicher gehalten; wer die Datei von Hand aendert, muss die App neu starten |
 | `textverlauf.mjs` | alte Fassungen von Stil-Block und Regie in `daten/text-verlauf/`. Die AKTIVE Datei bleibt liegen, archiviert wird der alte Stand vor dem Ueberschreiben — sonst muesste bei jedem Prompt erst gesucht werden, welche Fassung gilt |
 | `stil.mjs` | ZWEI Stil-Bloecke, Bild und Video, `bauePrompt()` / `bauePromptVideo()`. Wird bei **jedem** Prompt neu gelesen. Bewegung gehoert NICHT hinein, die steht im Prompt |
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |

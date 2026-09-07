@@ -422,6 +422,19 @@ export async function aktualisiereSchaetzung() {
       // Regler auf 8 s schiebt, soll auch den Preis fuer 8 s sehen.
       const s = await api.schaetzung({ modellVideo: modell, dauer, aufloesung });
       const p = s.video?.dollar;
+
+      // Dieses Modell hat genau diese Aufloesung schon einmal abgelehnt.
+      // Dann ist der Preis die falsche Auskunft - der Klick wuerde gar
+      // nichts erzeugen. Kostet nichts, aber es kostet einen Anlauf.
+      if (s.video?.nimmtAufloesung === false) {
+        const erlaubt = (s.video.erlaubteAufloesungen || []).join(', ');
+        feld.classList.add('warnung');
+        feld.textContent = `${info?.name || modell} nimmt ${aufloesung} nicht`
+          + (erlaubt ? ` — nur ${erlaubt}` : '')
+          + ' · vorher abgelehnt, kostet nichts';
+        return;
+      }
+
       feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · `
         + (p == null
           ? 'Preis erst nach dem ersten Clip bekannt'

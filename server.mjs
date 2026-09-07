@@ -25,6 +25,7 @@ import * as ollama from './lib/ollama.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
 import * as textverlauf from './lib/textverlauf.mjs';
+import * as gelernt from './lib/gelernt.mjs';
 import * as regie from './lib/regie.mjs';
 import * as kosten from './lib/kosten.mjs';
 import * as format from './lib/format.mjs';
@@ -171,13 +172,23 @@ const routen = {
       // kling-v3.0-pro, an zwei Laeufen streng linear.
       video: (() => {
         const dauer = Number(k.dauer) || konfig.STANDARD.videoDauer;
-        const mv = kosten.gemessen()[k.modellVideo || konfig.STANDARD.modellVideo];
+        const modellVideo = k.modellVideo || konfig.STANDARD.modellVideo;
+        const aufloesung = k.aufloesung || konfig.STANDARD.videoAufloesung;
+        const mv = kosten.gemessen()[modellVideo];
         const proSekunde = mv?.proSekunde || null;
         return {
           dauer,
-          aufloesung: k.aufloesung || konfig.STANDARD.videoAufloesung,
+          aufloesung,
           proSekunde,
           dollar: proSekunde ? Number((proSekunde * dauer).toFixed(3)) : null,
+          // Hat dieses Modell genau diese Aufloesung schon einmal woertlich
+          // abgelehnt, steht es hier - VOR dem Klick statt danach. Das ist
+          // der ganze Zweck von gelernt.json: die Ablehnung kostet zwar
+          // nichts, aber sie kostet Zeit und einen Moment Ratlosigkeit.
+          //
+          // null heisst: noch nie probiert. Dann wird nichts behauptet.
+          nimmtAufloesung: gelernt.nimmtAufloesung(modellVideo, aufloesung),
+          erlaubteAufloesungen: gelernt.bekannteAufloesungen(modellVideo),
         };
       })(),
       verbrauch: kosten.stand(),
