@@ -435,7 +435,8 @@ body.zu .ordner-einstellen { display: none; }
   justify-content: center;
   overflow: hidden;
 }
-.vl-bild-rahmen img {
+.vl-bild-rahmen img,
+.vl-bild-rahmen video {
   width: 100%;
   height: 100%;
   object-fit: contain;

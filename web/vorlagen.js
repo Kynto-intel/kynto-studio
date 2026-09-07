@@ -112,8 +112,21 @@ function vorschau(v) {
 
   // Eigene Kopie zuerst, Originaldatei als Rueckfall. Ein <img> auf einen
   // toten Pfad zeigt sonst das kaputte Bildsymbol des Browsers.
+  //
+  // Clips brauchen ein <video>: ein <img> auf eine mp4 bleibt schlicht
+  // leer, und genau so sah eine Video-Vorlage bis 7.9.2026 aus. Eine eigene
+  // Kopie gibt es fuer Clips nicht - aus einer mp4 laesst sich mit
+  // System.Drawing kein Standbild schneiden -, also zeigt sie immer die
+  // Originaldatei.
   const url = vorschauUrl(v);
-  if (url) {
+  if (v.art === 'video' && v.miniatur && v.miniaturDa) {
+    const clip = document.createElement('video');
+    clip.src = dateiUrl(v.miniatur);
+    clip.muted = true;
+    clip.playsInline = true;
+    clip.preload = 'metadata';
+    kasten.append(clip);
+  } else if (url) {
     const bild = document.createElement('img');
     bild.src = url;
     bild.alt = v.name;
@@ -122,7 +135,7 @@ function vorschau(v) {
   } else {
     const leer = document.createElement('span');
     leer.className = 'vl-ohne-bild';
-    leer.textContent = 'ohne Bild';
+    leer.textContent = v.art === 'video' && v.miniatur ? 'Clip gelöscht' : 'ohne Bild';
     kasten.append(leer);
   }
 
@@ -358,7 +371,7 @@ async function schliesseFormular() {
  * Bekommt eine fertige URL oder null. Wer sie baut, entscheidet auch, ob
  * die eigene Kopie oder die Originaldatei gemeint ist - siehe vorschauUrl().
  */
-function bildKachel({ titel, url, leerText, unterschrift }) {
+function bildKachel({ titel, url, video = false, leerText, unterschrift }) {
   const kasten = document.createElement('div');
   kasten.className = 'vl-bild';
 
@@ -368,7 +381,17 @@ function bildKachel({ titel, url, leerText, unterschrift }) {
 
   const rahmen = document.createElement('div');
   rahmen.className = 'vl-bild-rahmen';
-  if (url) {
+  if (url && video) {
+    // Mit Bedienleiste, damit man den Clip wirklich ansehen kann. Ob die
+    // Bewegung sitzt, beantwortet kein Standbild.
+    const clip = document.createElement('video');
+    clip.src = url;
+    clip.controls = true;
+    clip.muted = true;
+    clip.playsInline = true;
+    clip.preload = 'metadata';
+    rahmen.append(clip);
+  } else if (url) {
     const bild = document.createElement('img');
     bild.src = url;
     bild.alt = titel;
@@ -458,6 +481,7 @@ function formular(ziel) {
     }),
     bildKachel({
       titel: probelauf ? 'Probelauf' : 'Zuletzt daraus entstanden',
+      video: v.art === 'video',
       // Ein frischer Probelauf liegt in der Galerie, alles andere kommt aus
       // der eigenen Ablage der Vorlage - die haelt auch nach dem Aufraeumen.
       url: probelauf ? dateiUrl(probelauf) : vorschauUrl(v),
@@ -492,15 +516,32 @@ function formular(ziel) {
 
   // Der Preis steht VOR dem Knopf, nicht daneben - man soll ihn gelesen
   // haben, bevor die Hand am Auslöser ist. Wie unten im Komponisten.
+  // Eine Video-Vorlage erzeugt einen CLIP, kein Bild. Bis 7.9.2026 fragte
+  // diese Zeile immer nach dem Bildpreis und der Knopf rief immer
+  // /api/erzeugen - bei einer Video-Vorlage haette er das Falsche gemacht,
+  // und zwar fuer Geld.
+  const istVideo = v.art === 'video';
+  const geld = (d) => (d < 0.01 ? `${(d * 100).toFixed(2)} ¢` : `${d.toFixed(3)} $`);
+
   const schaetzZeile = document.createElement('div');
   schaetzZeile.className = 'vl-schaetzung';
   schaetzZeile.textContent = 'Preis wird geholt …';
-  api.schaetzung({ modell: v.modell, formatId: v.formatId, anzahl: 1, klein: false })
+  api.schaetzung(istVideo
+    ? { modellVideo: v.modell, dauer: v.dauer, aufloesung: v.aufloesung }
+    : { modell: v.modell, formatId: v.formatId, anzahl: 1, klein: false })
     .then((s) => {
+      if (istVideo) {
+        const d = s.video?.dollar;
+        schaetzZeile.textContent = `Ein Clip · ${s.video.dauer} s · ${s.video.aufloesung} · `
+          + (d == null ? 'Preis erst nach dem ersten Clip bekannt' : `${geld(d)} gemessen`);
+        if (d != null) probeKnopf.textContent = `Clip erzeugen · ${geld(d)}`;
+        return;
+      }
       const preis = s.dollar == null
         ? 'Preis erst nach dem ersten Lauf bekannt'
-        : `${s.dollar < 0.01 ? `${(s.dollar * 100).toFixed(2)} ¢` : `${s.dollar.toFixed(3)} $`}${s.gemessen ? '' : ' geschätzt'}`;
+        : `${geld(s.dollar)}${s.gemessen ? '' : ' geschätzt'}`;
       schaetzZeile.textContent = `Ein Bild · ${s.masse} → ${s.ziel} · ${preis}`;
+      if (s.dollar != null) probeKnopf.textContent = `Bild erzeugen · ${geld(s.dollar)}`;
     })
     .catch(() => { schaetzZeile.textContent = 'Preis nicht abrufbar.'; });
 
@@ -511,39 +552,53 @@ function formular(ziel) {
   const probeKnopf = document.createElement('button');
   probeKnopf.type = 'button';
   probeKnopf.className = 'erzeugt-jetzt';
-  probeKnopf.textContent = 'Bild erzeugen';
-  probeKnopf.title = 'Erzeugt EIN Bild mit dem Stand von oben — die Vorlage '
-    + 'bleibt dabei unverändert';
+  probeKnopf.textContent = istVideo ? 'Clip erzeugen' : 'Bild erzeugen';
+  probeKnopf.title = istVideo
+    ? 'Erzeugt EINEN Clip mit dem Stand von oben — die Vorlage bleibt unverändert'
+    : 'Erzeugt EIN Bild mit dem Stand von oben — die Vorlage bleibt unverändert';
   probeKnopf.addEventListener('click', async () => {
     if (!String(entwurf.motiv || '').trim()) {
       meldung.textContent = 'Ohne Motiv geht nichts.';
       return;
     }
+    const beschriftung = probeKnopf.textContent;
     probeKnopf.disabled = true;
-    probeKnopf.textContent = 'Erzeugt …';
+    probeKnopf.textContent = istVideo ? 'Animiert … (Minuten)' : 'Erzeugt …';
     meldung.textContent = '';
     try {
-      // Derselbe Weg wie der Knopf unten im Komponisten: POST /api/erzeugen.
-      // Es gibt keinen zweiten Weg zum Erzeugen, nur einen zweiten Knopf -
-      // und der wird von einem Menschen gedrueckt.
-      const e = await api.erzeugen({
-        motiv: entwurf.motiv,
-        modell: entwurf.modell,
-        formatId: entwurf.formatId,
-        anzahl: 1,
-        klein: false,
-        mitStil: entwurf.mitStil !== false,
-        name: entwurf.dateiname || '',
-        referenz: entwurf.referenz || null,
-        // Damit das Bild spaeter unten im Gitter wieder auftaucht.
-        vorlageId: entwurf.id,
-      });
+      // Dieselben Wege wie die Knoepfe unten im Komponisten:
+      // POST /api/erzeugen und POST /api/animieren. Es gibt keinen zweiten
+      // Weg zum Erzeugen, nur einen zweiten Knopf - und der wird von einem
+      // Menschen gedrueckt.
+      const e = istVideo
+        ? await api.animieren({
+          motiv: entwurf.motiv,
+          modell: entwurf.modell,
+          formatId: entwurf.formatId,
+          dauer: entwurf.dauer,
+          aufloesung: entwurf.aufloesung,
+          mitStil: entwurf.mitStil !== false,
+          name: entwurf.dateiname || '',
+          quellBild: entwurf.referenz || null,
+        })
+        : await api.erzeugen({
+          motiv: entwurf.motiv,
+          modell: entwurf.modell,
+          formatId: entwurf.formatId,
+          anzahl: 1,
+          klein: false,
+          mitStil: entwurf.mitStil !== false,
+          name: entwurf.dateiname || '',
+          referenz: entwurf.referenz || null,
+          // Damit das Bild spaeter unten im Gitter wieder auftaucht.
+          vorlageId: entwurf.id,
+        });
       probelauf = e.erzeugt[0] || null;
       await ladeGemacht();
       await zeichneNeu();
     } catch (fehler) {
       probeKnopf.disabled = false;
-      probeKnopf.textContent = 'Bild erzeugen';
+      probeKnopf.textContent = beschriftung;
       meldung.textContent = fehler.message;
     }
   });
