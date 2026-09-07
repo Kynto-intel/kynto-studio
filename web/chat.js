@@ -159,15 +159,22 @@ async function vorschlagKarte(id, name, argumente) {
     // der App eingestellt ist - gerendert wird das, nicht was im Gespraech
     // steht. Preis nennt OpenRouter fuer Video vorab nicht.
     let masse = '';
+    let preis = 'Preis erst nach dem ersten Clip bekannt';
     try {
       const s = await api.schaetzung({});
-      if (s.video) masse = ` · ${s.video.dauer} s · ${s.video.aufloesung}`;
+      if (s.video) {
+        masse = ` · ${s.video.dauer} s · ${s.video.aufloesung}`;
+        // Der gemessene Preis je Sekunde mal der eingestellten Dauer. Das
+        // pauschale "rund 20x ein Bild" stimmte nicht mehr: gemessen sind
+        // es beim 8-Sekuender das 36-Fache.
+        if (s.video.dollar != null) preis = `${geld(s.video.dollar)} gemessen`;
+      }
     } catch {
       // Ohne die Angabe steht eben nur der Rest da - kein Grund, den
       // Vorschlag deshalb scheitern zu lassen.
     }
-    zeile.textContent = `Clip${masse} · Preis erst nach dem Lauf bekannt · rund 20× ein Bild`;
-    ja.textContent = 'Clip erzeugen';
+    zeile.textContent = `Clip${masse} · ${preis}`;
+    ja.textContent = preis.startsWith('Preis') ? 'Clip erzeugen' : `Clip erzeugen · ${preis.split(' ')[0]}`;
   }
   ja.disabled = false;
 

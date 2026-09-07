@@ -36,3 +36,6 @@ desktop.ini
 # Falls jemand doch Pakete nachruestet
 node_modules/
 package-lock.json
+
+# Ideensammlung - Geschaeftliches, gehoert nicht ins oeffentliche Repo
+ideen.txt

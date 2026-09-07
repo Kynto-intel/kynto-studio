@@ -91,7 +91,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `stil.mjs` | ZWEI Stil-Bloecke, Bild und Video, `bauePrompt()` / `bauePromptVideo()`. Wird bei **jedem** Prompt neu gelesen. Bewegung gehoert NICHT hinein, die steht im Prompt |
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |
 | `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert Zeichenketten — die Pfadprüfung passiert vorher in der Route. EINE Ausnahme: das Vorschaubild wird nach `daten/vorlagen-bilder/<id>.png` kopiert, damit eine Vorlage haelt, wenn das Original in der Galerie geloescht wird. Ausgeliefert ueber `GET /api/vorlage-bild?id=…`, das keinen Pfad annimmt |
-| `kosten.mjs` | Verbrauch buchen, gemessene Modellpreise mitschreiben |
+| `kosten.mjs` | Verbrauch buchen, gemessene Modellpreise mitschreiben. Bei Clips zusaetzlich `proSekunde` — der Schnitt je Lauf taugt dort nicht, weil ein 8-Sekuender 60 % mehr kostet als ein 5-Sekuender |
 | `preise.mjs` | Live-Preise von OpenRouter, 30 Min Zwischenspeicher |
 | `modelle-bild/-video/-chat.mjs` | reine Kataloge + Nachladen. **Keine** Aufruf-Logik |
 | `anbieter-openrouter-*.mjs` | die Aufrufe. Kennen kein Dateisystem, bekommen Bytes, liefern Bytes |
@@ -272,7 +272,12 @@ haette ein Loch.
 - **Nur Windows.** `format.mjs`, `text.mjs` und `schriften.mjs` rufen
   PowerShell mit System.Drawing. Portierung heisst: diese drei ersetzen,
   sonst nichts.
-- **Video ist Beta.** Fehlerpfade geprueft, Erfolgsfall kaum gelaufen.
+- **Video laeuft.** Am 6.9.2026 zwei Clips aus einem Standbild ueber den
+  Chat-Vorschlag erzeugt, beide sauber - Vorschlag, Klick, Stil-Block,
+  Regie-Aufbau, alles gegriffen. Der Chat lief dabei auf `ollama/gemma4:26b`,
+  also lokal und kostenlos. Was bleibt: teuer. Gemessen **0,168 $ je
+  Sekunde** bei 720p auf kling-v3.0-pro, streng linear - 5 s kosten 0,84 $,
+  8 s kosten 1,34 $. Die Schaetzung zeigt das seit dem 7.9. vor dem Klick.
 - **Schriften kommen vom System.** Was fehlt, faellt aus dem Menue, statt
   still ersetzt zu werden.
 - **Einplatzig.** Keine Anmeldung, kein Mehrbenutzerbetrieb. Nicht ins Netz

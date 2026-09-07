@@ -415,8 +415,20 @@ export async function aktualisiereSchaetzung() {
   // wenigstens Dauer und Groesse schwarz auf weiss sieht.
   if (art === 'video') {
     const woher = referenz.pfad() ? 'Clip aus dem gewählten Standbild' : 'Text-zu-Video';
-    feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · Preis erst nach dem Lauf bekannt`;
     feld.classList.remove('warnung');
+    feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · Preis wird geholt …`;
+    try {
+      // Fragt mit DIESER Dauer, nicht mit der gespeicherten - wer den
+      // Regler auf 8 s schiebt, soll auch den Preis fuer 8 s sehen.
+      const s = await api.schaetzung({ modellVideo: modell, dauer, aufloesung });
+      const p = s.video?.dollar;
+      feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · `
+        + (p == null
+          ? 'Preis erst nach dem ersten Clip bekannt'
+          : `${geld(p)} gemessen`);
+    } catch {
+      feld.textContent = `${woher} · ${dauer} s · ${aufloesung} · Preis nicht abrufbar`;
+    }
     return;
   }
 

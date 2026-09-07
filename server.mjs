@@ -154,10 +154,23 @@ const routen = {
       // Was beim Clip herauskaeme. Steht hier mit drin, weil das die
       // Frage ist, die diese Route beantwortet: was passiert, wenn ich
       // jetzt drücke. Der Vorschlag im Chat zeigt es damit an.
-      video: {
-        dauer: konfig.STANDARD.videoDauer,
-        aufloesung: konfig.STANDARD.videoAufloesung,
-      },
+      //
+      // Der Preis kommt aus der eigenen Messung je SEKUNDE, nicht aus dem
+      // Schnitt je Lauf: ein 8-Sekuender kostet 60 % mehr als ein
+      // 5-Sekuender, und ein gemittelter Lauf-Preis waere vor dem Klick
+      // eine falsche Zahl. Gemessen 6.9.2026: 0,168 $/s bei 720p auf
+      // kling-v3.0-pro, an zwei Laeufen streng linear.
+      video: (() => {
+        const dauer = Number(k.dauer) || konfig.STANDARD.videoDauer;
+        const mv = kosten.gemessen()[k.modellVideo || konfig.STANDARD.modellVideo];
+        const proSekunde = mv?.proSekunde || null;
+        return {
+          dauer,
+          aufloesung: k.aufloesung || konfig.STANDARD.videoAufloesung,
+          proSekunde,
+          dollar: proSekunde ? Number((proSekunde * dauer).toFixed(3)) : null,
+        };
+      })(),
       verbrauch: kosten.stand(),
     };
   },
