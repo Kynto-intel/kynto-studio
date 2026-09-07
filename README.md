@@ -10,6 +10,11 @@ actually generate — the price is shown **before** you click.
 > German UI. The code and comments are German too. Contributions welcome
 > either way — see [Contributing](#contributing).
 
+![Kynto Studio with the assistant panel open](bilder/assistent.png)
+
+<sub>A fresh install — empty library, no runs yet. The bar at the bottom
+always shows what the next click costs.</sub>
+
 ---
 
 ## Why this exists
@@ -101,6 +106,30 @@ can render a full sentence reliably. One word, maybe. A sentence, no.
   changes.
 - **Plain HTTP API** — the browser interface is just one client. Script it,
   or let your own agent drive it while you watch in the browser.
+
+---
+
+## What it looks like
+
+Every shot below is an empty install — nothing generated, nothing configured
+beyond the four output folders.
+
+**The library.** Folders on the left with a count each, search on top, the
+composer at the bottom. Model, format and count sit next to the price, so the
+cost of the next click is never more than one glance away.
+
+![The library view, empty](bilder/bestand.png)
+
+**Daily limits.** A ceiling for everything together, and one each for images,
+clips and the assistant. Once a limit is reached nothing runs — not from the
+button, not from the assistant, not from a script over the API.
+
+![The daily limits tab](bilder/tagesgrenzen.png)
+
+**Templates.** A run you liked — prompt, format, count, reference image —
+saved under a name and reloaded into the composer with one click.
+
+![The templates view, empty](bilder/vorlagen.png)
 
 ---
 
@@ -292,13 +321,16 @@ kynto-studio/
 │   ├── resize.ps1             crop and scale
 │   └── text.ps1               render text onto an image
 ├── web/                       the interface, no build step
+├── bilder/                    screenshots for this README
 └── daten/                     runtime data, git-ignored
     ├── verlauf.json           activity log with full prompts
     ├── verbrauch.json         spending and measured model prices
     ├── vorlagen.json          your saved runs
+    ├── gelernt.json           limits learned from provider rejections
     ├── stil-block.txt         your style block for images, plain text
     ├── stil-block-video.txt   the same for clips
-    └── regie.txt              what the assistant knows about the craft
+    ├── regie.txt              what the assistant knows about the craft
+    └── text-verlauf/          every earlier version of those three files
 ```
 
 `daten/` is created on first start. Delete it and the app starts fresh —
