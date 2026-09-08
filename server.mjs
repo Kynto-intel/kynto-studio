@@ -25,6 +25,7 @@ import * as ollama from './lib/ollama.mjs';
 import * as sidecar from './lib/sidecar.mjs';
 import * as stil from './lib/stil.mjs';
 import * as textverlauf from './lib/textverlauf.mjs';
+import * as anleitungen from './lib/anleitungen.mjs';
 import * as gelernt from './lib/gelernt.mjs';
 import * as regie from './lib/regie.mjs';
 import * as kosten from './lib/kosten.mjs';
@@ -121,6 +122,12 @@ const routen = {
     stilDatei: stil.STIL_DATEI,
     // Wie viele frueheren Fassungen aufgehoben sind. Ohne die Angabe in der
     // Oberflaeche wuesste niemand, dass es den Ordner ueberhaupt gibt.
+    // Nur Name und "Wann" je Anleitung - der Volltext geht nie an den
+    // Browser, der braucht ihn nicht.
+    anleitungen: {
+      ordner: anleitungen.ANLEITUNGEN_ORDNER,
+      liste: anleitungen.liste().map(({ kennung, name, wann }) => ({ kennung, name, wann })),
+    },
     textVerlauf: {
       ordner: textverlauf.VERLAUF_ORDNER,
       stil: textverlauf.fassungen('stil-block').length,

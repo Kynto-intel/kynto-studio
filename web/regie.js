@@ -20,13 +20,17 @@ let standard = '';
 let datei = '';
 let fassungen = 0;
 let verlaufOrdner = '';
+let anleitungen = [];
+let anleitungenOrdner = '';
 
-export function setzeDaten({ regie, standardRegie, regieDatei, textVerlauf } = {}) {
+export function setzeDaten({ regie, standardRegie, regieDatei, textVerlauf, anleitungen: anl } = {}) {
   text = regie || '';
   standard = standardRegie || '';
   datei = regieDatei || '';
   fassungen = textVerlauf?.regie || 0;
   verlaufOrdner = textVerlauf?.ordner || '';
+  anleitungen = anl?.liste || [];
+  anleitungenOrdner = anl?.ordner || '';
 }
 
 /** Frisch holen - die Datei laesst sich auch im Editor aendern. */
@@ -135,6 +139,57 @@ export function zeichne(ziel) {
     });
     kasten.append(alt);
   }
+
+  // Die Anleitungen. Sie gehoeren hierher und nicht in einen eigenen
+  // Reiter: die Regie sagt, WIE der Assistent arbeitet, die Anleitungen
+  // sagen, was er fuer eine bestimmte Aufgabe weiss. Dieselbe Frage,
+  // zwei Antworten.
+  const anl = document.createElement('div');
+  anl.className = 'anleitungen';
+
+  const anlTitel = document.createElement('h3');
+  anlTitel.textContent = 'Anleitungen';
+  anl.append(anlTitel);
+
+  const anlText = document.createElement('p');
+  anlText.className = 'gr-erklaerung';
+  anlText.textContent = anleitungen.length
+    ? 'Handwerk fuer einzelne Aufgaben. Der Assistent sieht nur die Namen und '
+      + 'liest eine erst, wenn sie dran ist — sie kosten dich also nichts, '
+      + 'solange sie nicht gebraucht werden. Neue Datei im Ordner anlegen reicht.'
+    : 'Noch keine. Eine Anleitung ist eine Textdatei im Ordner unten: erste '
+      + 'Zeile „# Name“, zweite „Wann: …“, der Rest ist Inhalt.';
+  anl.append(anlText);
+
+  if (anleitungen.length) {
+    const liste = document.createElement('ul');
+    liste.className = 'anleitung-liste';
+    for (const a of anleitungen) {
+      const li = document.createElement('li');
+      const name = document.createElement('b');
+      name.textContent = a.name;
+      li.append(name);
+      if (a.wann) li.append(document.createTextNode(' — ' + a.wann));
+      liste.append(li);
+    }
+    anl.append(liste);
+  }
+
+  if (anleitungenOrdner) {
+    const pfad = document.createElement('div');
+    pfad.className = 'stil-pfad';
+    pfad.textContent = anleitungenOrdner;
+    pfad.title = 'Klicken zum Kopieren';
+    pfad.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(anleitungenOrdner);
+      const alt = pfad.textContent;
+      pfad.textContent = 'Pfad kopiert';
+      setTimeout(() => { pfad.textContent = alt; }, 1600);
+    });
+    anl.append(pfad);
+  }
+
+  kasten.append(anl);
 
   ziel.append(kasten);
 }
