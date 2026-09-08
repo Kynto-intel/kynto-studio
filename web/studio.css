@@ -2089,3 +2089,7 @@ body.zu .verlauf-knopf span { display: none; }
 .anleitung-liste { margin: 10px 0 6px; padding-left: 18px; line-height: 1.7; }
 .anleitung-liste li { color: var(--muted); }
 .anleitung-liste b { color: var(--text); font-weight: 600; }
+
+/* Der Beschnitt-Hinweis in der Schaetzung. Warnfarbe, aber kein Alarm -
+   es ist eine Tatsache ueber das Bild, kein Fehler. */
+.beschnitt-hinweis { color: var(--accent); }

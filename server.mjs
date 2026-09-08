@@ -167,6 +167,13 @@ const routen = {
       gemessen: Boolean(gemessen),
       dollar: proBild ? Number((proBild * anzahl).toFixed(4)) : null,
       masse: `${m.genW}x${m.genH}`,
+      // Was der Beschnitt wegnimmt - aber NUR, wenn aus einer frueheren
+      // Ablehnung bekannt ist, dass dieses Modell das gewuenschte
+      // Verhaeltnis nicht nimmt. Ohne dieses Wissen wird nichts behauptet.
+      beschnitt: format.beschnitt(
+        formatId,
+        gelernt.ersatzVerhaeltnis(modell, format.verhaeltnis(m.genW, m.genH)),
+      ),
       ziel: m.zielW ? `${m.zielW}x${m.zielH}` : 'roh',
       // Was beim Clip herauskaeme. Steht hier mit drin, weil das die
       // Frage ist, die diese Route beantwortet: was passiert, wenn ich

@@ -456,6 +456,18 @@ export async function aktualisiereSchaetzung() {
     }
 
     feld.replaceChildren();
+    // Beschnitt zuerst: dass oben und unten etwas wegfaellt, ist wichtiger
+    // als der Preis - der Preis aendert sich dadurch nicht, das Bild schon.
+    if (s.beschnitt) {
+      const b = document.createElement('span');
+      b.className = 'beschnitt-hinweis';
+      b.textContent = `${s.beschnitt.gerendert} statt ${s.beschnitt.gewuenscht} — `
+        + `${s.beschnitt.jeSeite} % fallen ${s.beschnitt.achse} weg · `;
+      b.title = `Dieses Modell nimmt ${s.beschnitt.gewuenscht} nicht und rendert `
+        + `${s.beschnitt.gerendert}. Beim Zuschnitt auf das Zielmass wird mittig `
+        + `beschnitten. Halte Wichtiges aus den Raendern heraus.`;
+      feld.append(b);
+    }
     // anzahl kommt schon aus eingaben() oben - hier NICHT neu deklarieren,
     // das erzeugt sonst "Cannot access 'anzahl' before initialization".
     feld.append(document.createTextNode(`${anzahl}× ${s.masse} → ${s.ziel} · `));
