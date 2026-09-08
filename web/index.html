@@ -267,7 +267,11 @@
 
       <div class="te-fuss">
         <span id="teStatus"></span>
-        <button id="teSpeichern" class="senden" type="button">Speichern</button>
+        <!-- .fest, nicht .senden: .senden ist ein fester 34x34-Knopf mit
+             padding 0 fuer ein Symbol (der Pfeil im Komponisten). Mit dem
+             Wort "Speichern" darin lief die Beschriftung ueber die Rundung
+             hinaus. Textknoepfe tragen in dieser App .fest. -->
+        <button id="teSpeichern" class="fest" type="button">Speichern</button>
       </div>
     </div>
   </div>
