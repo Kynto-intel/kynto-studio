@@ -103,7 +103,8 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `auftrag-video.mjs` | dasselbe fuer Clips. Zwei Dateien, weil Dauer, Aufloesung und Rohschreiben anders laufen |
 | `gespraech.mjs` | Systemhinweis + Werkzeugschleife. Schickt Ereignisse ueber den Rueckruf `sende`, kennt weder `req` noch `res` |
 | `werkzeuge.mjs` | was der Assistent darf. Siehe unten |
-| `format.mjs`, `text.mjs`, `schriften.mjs` | die drei PowerShell-Kapseln |
+| `papierkorb.mjs` | Loeschen in den WINDOWS-Papierkorb, samt Sidecar. Kein eigener Ordner unter `daten/`: der Papierkorb ist der Ort, an dem man ohnehin nachsieht, und Wiederherstellen geht dort mit Rechtsklick. Prueft ein zweites Mal mit `pruefeInnerhalb()` — die einzige Sache in dieser App, die nicht rueckgaengig zu machen ist. Der Assistent hat KEIN Loeschwerkzeug und bekommt keins |
+| `format.mjs`, `text.mjs`, `schriften.mjs` | die vier PowerShell-Kapseln (mit papierkorb.mjs) |
 | `verlauf.mjs` | Verlauf + Server-Sent-Events an offene Fenster |
 | `chatverlauf.mjs` | Gespraech in `daten/chat.json` |
 

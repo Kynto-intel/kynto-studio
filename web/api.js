@@ -19,6 +19,9 @@ async function ruf(pfad, optionen = {}) {
 export const api = {
   start: () => ruf('/api/start'),
 
+  // Legt die Datei in den Windows-Papierkorb, samt Sidecar.
+  loeschen: (pfad) => ruf('/api/loeschen', { method: 'POST', body: JSON.stringify({ pfad }) }),
+
   kostenGeschichte: (monate = 0) => ruf(`/api/kosten-geschichte?monate=${monate}`),
 
   // vorlage: nur, was ueber diese Vorlage erzeugt wurde. Die Zuordnung

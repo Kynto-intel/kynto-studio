@@ -2114,3 +2114,28 @@ body.zu .verlauf-knopf span { display: none; }
 .kosten-tabelle td { padding: 6px 8px 6px 0; color: var(--subtext); }
 .kosten-tabelle td:first-child { color: var(--text); }
 .kosten-tabelle tr.unvollstaendig td { color: var(--accent); }
+
+/* Loeschen. Eigene Klasse, nicht .neben oder .fest - am 6.9.2026 traf ein
+   Klick den falschen Knopf, weil zwei dieselbe Klasse trugen. Bei diesem
+   waere das eine Datei gewesen, kein Cent. Ruhig im Ruhezustand, deutlich
+   erst nach der Rueckfrage. */
+.loescht-jetzt {
+  border-radius: 7px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--subtext);
+}
+.loescht-jetzt:hover:not(:disabled) { color: #C2542A; border-color: #C2542A; }
+.loescht-jetzt.gefragt {
+  background: #C2542A;
+  border-color: #C2542A;
+  color: #17110a;
+  font-weight: 600;
+}
+.loescht-jetzt:disabled { opacity: .5; cursor: default; }

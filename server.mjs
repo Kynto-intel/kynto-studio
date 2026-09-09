@@ -37,6 +37,7 @@ import * as openrouterBild from './lib/anbieter-openrouter-bild.mjs';
 import * as preise from './lib/preise.mjs';
 import * as verlauf from './lib/verlauf.mjs';
 import * as vorlagen from './lib/vorlagen.mjs';
+import * as papierkorb from './lib/papierkorb.mjs';
 import * as textebene from './lib/text.mjs';
 import * as schriften from './lib/schriften.mjs';
 
@@ -236,6 +237,26 @@ const routen = {
     ...await koerperLesen(req),
     quelle: quelleVon(req),
   }),
+
+  /**
+   * Datei in den Windows-Papierkorb legen.
+   *
+   * Die einzige Route, die etwas wegnimmt. Sie steht bewusst allein und
+   * hat kein Gegenstueck im Assistenten: werkzeuge.mjs kennt sie nicht,
+   * und das bleibt so. Was geloescht wird, entscheidet der Mensch.
+   */
+  'POST /api/loeschen': async (req) => {
+    const { pfad } = await koerperLesen(req);
+    const voll = absolut(pfad);
+    const weg = await papierkorb.loesche(voll);
+    verlauf.halteFest({
+      was: 'geloescht',
+      quelle: quelleVon(req),
+      text: `In den Papierkorb: ${weg.datei}`,
+      details: { pfad: relativ(voll), sidecar: weg.sidecar },
+    });
+    return { geloescht: relativ(voll), ...weg };
+  },
 
   /**
    * Datei wirklich umbenennen - nicht nur die Anzeige.
