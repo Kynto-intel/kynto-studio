@@ -475,6 +475,7 @@ async function los() {
   detail.setzeAenderungsZiel(raster.lade);
   detail.setzeReferenzZiel(referenz.setze);
   detail.setzeTextZiel(texteditor.oeffne);
+  detail.setzeLaufZiel(erzeugen.ladeVorlage);
   detail.verdrahte();
 
   texteditor.setzeDaten(start);

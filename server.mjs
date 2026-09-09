@@ -602,7 +602,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Dateien aus der Bibliothek ausliefern
-    if (req.method === 'GET' && url.pathname === '/datei') {
+    // HEAD ist hier mehr als Formsache: die Oberflaeche fragt damit, ob eine
+    // Datei ueberhaupt noch da ist - etwa das Referenzbild eines alten Laufs,
+    // bevor sie es in den Komponisten laedt. Ein zweiter Weg mit eigener
+    // Route waere dafuer zu viel; HEAD ist GET ohne Rumpf und geht durch
+    // dieselbe Pfadpruefung.
+    if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/datei') {
       const voll = absolut(url.searchParams.get('pfad') || '');
       const bytes = bibliothek.lieferDatei(voll);
       res.writeHead(200, {
@@ -610,7 +615,7 @@ const server = http.createServer(async (req, res) => {
         'content-length': bytes.length,
         'cache-control': 'no-store',
       });
-      return res.end(bytes);
+      return res.end(req.method === 'HEAD' ? undefined : bytes);
     }
 
     // Oberflaeche

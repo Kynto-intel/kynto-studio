@@ -12,6 +12,26 @@ export function setzeAenderungsZiel(fn) { beiAenderung = fn; }
 export function setzeReferenzZiel(fn) { referenzSetzen = fn; }
 export function setzeTextZiel(fn) { textEditorOeffnen = fn; }
 
+let laufLaden = null;
+export function setzeLaufZiel(fn) { laufLaden = fn; }
+
+/**
+ * Liegt die Datei noch da?
+ *
+ * Fuer das Referenzbild eines alten Laufs. Es kann laengst geloescht sein,
+ * und dann soll der Komponist es nicht stillschweigend uebernehmen - der
+ * Lauf wuerde erst beim Klick scheitern, und zwar kostenpflichtig.
+ */
+async function gibtEs(pfad) {
+  if (!pfad) return false;
+  try {
+    const a = await fetch(dateiUrl(pfad), { method: 'HEAD' });
+    return a.ok;
+  } catch {
+    return false;
+  }
+}
+
 function reihe(dl, bezeichnung, wert) {
   if (!wert) return;
   const dt = document.createElement('dt');
@@ -148,9 +168,49 @@ export function zeige(eintrag) {
     kopieren,
     knopf('Motiv übernehmen', {
       neben: true,
+      titel: 'Nur den Text — Modell, Format und Referenz bleiben, wie sie eingestellt sind',
       gesperrt: !eintrag.motiv,
       beiKlick: () => {
         el('motiv').value = eintrag.motiv;
+        schliesse();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+    }),
+
+    // Der ganze Lauf zurueck in den Komponisten - Motiv, Modell, Format,
+    // Stil-Haken, Referenz, bei Clips Dauer und Aufloesung. "Motiv
+    // uebernehmen" daneben nimmt nur den Text; das hier ist der Unterschied
+    // zwischen "aehnlicher Text" und "derselbe Lauf, eine Sache anders".
+    //
+    // Erzeugt wird dabei NICHTS. Es fuellt nur Felder, wie eine Vorlage
+    // auch - sonst waere es ein zweiter Weg zum Erzeugen.
+    knopf('Nochmal, aber …', {
+      neben: true,
+      gesperrt: !eintrag.motiv || !laufLaden,
+      titel: eintrag.motiv
+        ? 'Alles aus diesem Lauf zurück in den Komponisten. Erzeugt nichts — du klickst selbst.'
+        : 'Ohne Motiv im Sidecar lässt sich der Lauf nicht wiederherstellen',
+      beiKlick: async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        const referenz = eintrag.referenzBild || null;
+        laufLaden({
+          name: eintrag.name,
+          art: eintrag.art === 'video' ? 'video' : 'bild',
+          motiv: eintrag.motiv,
+          modell: eintrag.modell || null,
+          formatId: eintrag.format || null,
+          // Bewusst 1, nicht die Anzahl von damals: das Sidecar haelt sie
+          // gar nicht, und Regel 6 sagt ohnehin, dass die Anzahl bei 1
+          // anfaengt.
+          anzahl: 1,
+          klein: false,
+          mitStil: eintrag.mitStil !== false,
+          dauer: eintrag.dauer || null,
+          aufloesung: eintrag.aufloesung || null,
+          referenz,
+          referenzDa: await gibtEs(referenz),
+        });
         schliesse();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
