@@ -2106,7 +2106,11 @@ body.zu .verlauf-knopf span { display: none; }
   text-align: left; font-weight: 600; color: var(--subtext);
   padding: 4px 8px 6px 0; border-bottom: 1px solid var(--border);
 }
-.kosten-tabelle th:not(:first-child), .kosten-tabelle td.zahl { text-align: right; }
+.kosten-tabelle th:not(:first-child), .kosten-tabelle td.zahl {
+  text-align: right;
+  /* Gleiche Ziffernbreite - sonst wandern die Spalten je nach Zahl. */
+  font-variant-numeric: tabular-nums;
+}
 .kosten-tabelle td { padding: 6px 8px 6px 0; color: var(--subtext); }
 .kosten-tabelle td:first-child { color: var(--text); }
 .kosten-tabelle tr.unvollstaendig td { color: var(--accent); }

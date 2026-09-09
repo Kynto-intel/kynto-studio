@@ -258,7 +258,11 @@ async function zeichneGeschichte(ziel) {
     felder.forEach((wert, i) => {
       const td = document.createElement('td');
       td.textContent = wert;
-      if (i >= 3) td.className = 'zahl';
+      // Alles ausser dem Monat ist eine Zahl und gehoert nach rechts - die
+      // Ueberschriften stehen dort schon. Bis 9.9. galt das erst ab Spalte
+      // 3, dadurch standen "Bilder" und "Clips" unter ihrer eigenen
+      // Ueberschrift versetzt.
+      if (i >= 1) td.className = 'zahl';
       tr.append(td);
     });
     // Geld, das nur als Tagessumme festgehalten wurde, gehoert in keine
