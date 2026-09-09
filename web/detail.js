@@ -62,52 +62,6 @@ function knopf(text, { neben = false, gesperrt = false, titel = '', beiKlick }) 
   return b;
 }
 
-/**
- * Der Loeschknopf. Zwei Stufen, eigene Klasse, kein natives Fenster.
- *
- * Erste Stufe fragt nur. Zweite legt die Datei samt Sidecar in den
- * Windows-Papierkorb - von dort holt man sie mit Rechtsklick zurueck, wie
- * jede andere Datei auch.
- */
-function loeschKnopf(eintrag) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'loescht-jetzt';
-  b.textContent = 'Löschen';
-  b.title = 'Legt die Datei in den Windows-Papierkorb — von dort holst du sie zurück';
-
-  let gefragt = false;
-  b.addEventListener('click', async () => {
-    if (!gefragt) {
-      gefragt = true;
-      b.textContent = 'Wirklich? In den Papierkorb';
-      b.classList.add('gefragt');
-      // Nach acht Sekunden zurueck in den Ruhezustand. Ein Knopf, der
-      // scharf bleibt, wird beim naechsten Blick versehentlich getroffen.
-      setTimeout(() => {
-        if (!gefragt) return;
-        gefragt = false;
-        b.textContent = 'Löschen';
-        b.classList.remove('gefragt');
-      }, 8000);
-      return;
-    }
-    b.disabled = true;
-    b.textContent = 'Wird gelöscht …';
-    try {
-      await api.loeschen(eintrag.pfad);
-      schliesse();
-      beiAenderung();
-    } catch (fehler) {
-      b.disabled = false;
-      gefragt = false;
-      b.classList.remove('gefragt');
-      b.textContent = `Ging nicht: ${fehler.message}`;
-    }
-  });
-  return b;
-}
-
 export function zeige(eintrag) {
   const kasten = el('detail');
   const bildFeld = el('detailBild');
@@ -262,19 +216,6 @@ export function zeige(eintrag) {
       },
     }),
 
-    // Loeschen steht ganz zuletzt, traegt eine EIGENE Klasse und fragt
-    // zweimal. Alles drei mit Absicht:
-    //
-    // Es ist die einzige Sache in dieser App, die etwas wegnimmt. Am
-    // 6.9.2026 hat ein Klick auf `button.fest` den Erzeugen-Knopf daneben
-    // getroffen, weil beide dieselbe Klasse trugen - bei einem
-    // Loeschknopf waere das kein Cent, sondern eine Datei.
-    //
-    // Die zweite Stufe ist kein natives confirm(): solche Fenster kommen
-    // in dieser App nirgends vor, und ein Fenster, das man wegklickt,
-    // lernt man wegzuklicken. Der Knopf beschriftet sich stattdessen um
-    // und sagt, wohin die Datei geht.
-    loeschKnopf(eintrag),
 
     // Das Sidecar weiss schon alles: Motiv, Modell, Format, Stil-Haken und
     // Referenz. Damit wird jedes Bild, das laengst da ist, nachtraeglich

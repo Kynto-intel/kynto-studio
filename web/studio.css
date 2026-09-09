@@ -2139,3 +2139,42 @@ body.zu .verlauf-knopf span { display: none; }
   font-weight: 600;
 }
 .loescht-jetzt:disabled { opacity: .5; cursor: default; }
+
+/* Papierkorb auf der Bildkarte, oben links. Unsichtbar bis zum Ueberfahren:
+   ein Loeschsymbol auf jeder Kachel waere eine Wand aus Muelltonnen.
+   Liegt ueber dem VIDEO-Abzeichen, das beim Ueberfahren zuruecktritt. */
+.karte-loescht {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: rgba(18, 19, 20, .88);
+  color: var(--text);
+  cursor: pointer;
+}
+.karte-loescht svg { width: 15px; height: 15px; display: block; }
+.karte:hover .karte-loescht,
+.karte-loescht:focus-visible { display: inline-flex; }
+.karte:hover .video-marke { opacity: 0; }
+.karte-loescht:hover { color: #C2542A; border-color: #C2542A; }
+
+/* Nach dem ersten Klick: eingefaerbt und gefragt. Nach acht Sekunden
+   faellt es von allein zurueck. */
+.karte-loescht.gefragt {
+  display: inline-flex;
+  background: #C2542A;
+  border-color: #C2542A;
+  color: #17110a;
+}
+.karte-loescht:disabled { opacity: .6; cursor: default; }
+
+/* Beim Loeschen sofort weg, nicht erst nach dem Nachladen. */
+.karte.geht-weg { opacity: .25; pointer-events: none; }

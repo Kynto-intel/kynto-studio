@@ -294,6 +294,77 @@ function starteUmbenennen(titelEl, eintrag, karteEl) {
   });
 }
 
+/**
+ * Der Papierkorb oben links auf der Karte.
+ *
+ * Sichtbar erst beim Ueberfahren - eine Galerie mit einem Loeschsymbol auf
+ * jeder Kachel waere eine Wand aus Muelltonnen.
+ *
+ * ZWEI STUFEN, und hier noch wichtiger als in einem Dialog: In einem Raster
+ * bewegt man die Maus schnell und klickt beilaeufig. Der erste Klick faerbt
+ * nur ein und fragt; nach acht Sekunden ist er wieder harmlos. Ein Symbol,
+ * das beim ersten Klick loescht, waere in einer Galerie fahrlaessig.
+ *
+ * stopPropagation ueberall: sonst oeffnet der Klick zusaetzlich die
+ * Detailansicht des Bildes, das man gerade wegwirft.
+ */
+function papierkorbKnopf(eintrag, karteEl) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'karte-loescht';
+  b.title = 'In den Papierkorb — von dort holst du die Datei zurück';
+  b.setAttribute('aria-label', `${eintrag.name} in den Papierkorb`);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.7');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  const pfad = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pfad.setAttribute('d', 'M4 7h16 M10 4h4 M6 7l1 13h10l1-13 M10 11v6 M14 11v6');
+  svg.append(pfad);
+  b.append(svg);
+
+  let gefragt = false;
+  let uhr = null;
+  const zurueck = () => {
+    gefragt = false;
+    b.classList.remove('gefragt');
+    b.title = 'In den Papierkorb — von dort holst du die Datei zurück';
+  };
+
+  b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!gefragt) {
+      gefragt = true;
+      b.classList.add('gefragt');
+      b.title = 'Nochmal klicken: in den Papierkorb';
+      clearTimeout(uhr);
+      uhr = setTimeout(zurueck, 8000);
+      return;
+    }
+    clearTimeout(uhr);
+    b.disabled = true;
+    try {
+      await api.loeschen(eintrag.pfad);
+      // Die Karte sofort ausblenden, nicht erst nach dem Nachladen - sonst
+      // steht sie noch da und man klickt ein zweites Mal.
+      karteEl.classList.add('geht-weg');
+      await lade();
+    } catch (fehler) {
+      b.disabled = false;
+      zurueck();
+      b.title = `Ging nicht: ${fehler.message}`;
+    }
+  });
+
+  // Nicht mit der Karte mit-navigieren, wenn jemand sich durchtabbt.
+  b.addEventListener('keydown', (e) => e.stopPropagation());
+  return b;
+}
+
 function karte(eintrag) {
   const el = document.createElement('article');
   el.className = 'karte';
@@ -336,6 +407,10 @@ function karte(eintrag) {
     bild.loading = 'lazy';
     vorschau.append(bild);
   }
+
+  // Zuletzt in die Vorschau, damit er ueber dem VIDEO-Abzeichen liegt -
+  // beide sitzen oben links. Beim Ueberfahren tritt das Abzeichen zurueck.
+  vorschau.append(papierkorbKnopf(eintrag, el));
 
   const fuss = document.createElement('div');
   fuss.className = 'fuss';
