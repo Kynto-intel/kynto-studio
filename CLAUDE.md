@@ -95,7 +95,7 @@ daten/          Laufzeitdaten, git-ignoriert, wird beim Start angelegt
 | `regie.mjs` | Handwerkswissen fuer den Assistenten in `daten/regie.txt`. Geht in den Systemhinweis, nicht in den Bild-Prompt — nicht mit dem Stil-Block verwechseln |
 | `vorlagen.mjs` | gespeicherte Läufe in `daten/vorlagen.json`. Speichert Zeichenketten — die Pfadprüfung passiert vorher in der Route. EINE Ausnahme: das Vorschaubild wird nach `daten/vorlagen-bilder/<id>.png` kopiert, damit eine Vorlage haelt, wenn das Original in der Galerie geloescht wird. Ausgeliefert ueber `GET /api/vorlage-bild?id=…`, das keinen Pfad annimmt |
 | `kosten.mjs` | Verbrauch buchen, gemessene Modellpreise mitschreiben. Bei Clips zusaetzlich `proSekunde` — der Schnitt je Lauf taugt dort nicht, weil ein 8-Sekuender 60 % mehr kostet als ein 5-Sekuender |
-| `preise.mjs` | Live-Preise von OpenRouter, 30 Min Zwischenspeicher |
+| `preise.mjs` | Live-Preise von OpenRouter, 30 Min Zwischenspeicher, zusaetzlich auf Platte in `daten/preise.json` — sonst haette ein Start ohne Netz gar keine. Knappe Frist (4 s) wie bei `ollama.mjs`: bei angenommener, aber unbeantworteter Verbindung gibt es keine TCP-Zeitueberschreitung, die App laedt dann NIE |
 | `modelle-bild/-video/-chat.mjs` | reine Kataloge + Nachladen. **Keine** Aufruf-Logik |
 | `anbieter-openrouter-*.mjs` | die Aufrufe. Kennen kein Dateisystem, bekommen Bytes, liefern Bytes |
 | `ollama.mjs` | lokaler Chat. Erkennung, Katalog und Aufruf in EINER Datei - Ausnahme zur Trennung unten, begruendet im Kopf der Datei. Laeuft Ollama nicht, ist die Liste leer und niemand merkt etwas |

@@ -93,9 +93,23 @@ async function koerperLesen(req) {
 
 const routen = {
   /** Alles, was die Oberflaeche zum Start braucht. */
-  'GET /api/start': async () => ({
-    guthaben: await openrouterBild.guthaben(),
-    preise: { bild: await preise.fuer('bild'), video: await preise.fuer('video') },
+  'GET /api/start': async () => {
+    // Die drei Netzaufrufe PARALLEL. Hintereinander summierten sich ihre
+    // Wartezeiten - bei haengender Verbindung dreimal die Frist statt
+    // einmal, und /api/start ist das Erste, was die Oberflaeche holt.
+    // Jeder faengt seine Fehler selbst ab und liefert im Zweifel den
+    // letzten bekannten Stand, deshalb reicht Promise.all.
+    const [guthaben, preiseBild, preiseVideo] = await Promise.all([
+      openrouterBild.guthaben(),
+      preise.fuer('bild'),
+      preise.fuer('video'),
+    ]);
+    return {
+    guthaben,
+    preise: { bild: preiseBild, video: preiseVideo },
+    // Wie alt die Preise sind. Damit die Oberflaeche eine Zahl von gestern
+    // nicht als aktuell ausgibt.
+    preisStand: preise.stand(),
     gemessen: kosten.gemessen(),
     ordner: konfig.ORDNER.map(({ id, label, hinweis, schreibbar }) => ({ id, label, hinweis, schreibbar })),
     formate: Object.entries(konfig.FORMATE).map(([id, f]) => ({
@@ -139,7 +153,8 @@ const routen = {
 
     schriften: await schriften.verfuegbar(),
     textVorlagen: schriften.VORLAGEN,
-  }),
+    };
+  },
 
   'GET /api/bestand': async (_req, url) => ({
     ...bibliothek.bestandFuerAnsicht({

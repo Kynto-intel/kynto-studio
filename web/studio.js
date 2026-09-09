@@ -36,6 +36,7 @@ function kopierBlock(inhalt, bestaetigung) {
 }
 
 let guthabenStand = null;
+let preisStand = null;
 
 /**
  * Eine Fusszeile: Beschriftung links, Zahl rechts.
@@ -92,11 +93,30 @@ function zeigeAnbieter(anbieter, schluessel = {}) {
 
   const uebrig = guthabenStand?.uebrig;
   const leer = typeof uebrig === 'number' && uebrig <= 0;
-  ziel.append(fussZeile('OpenRouter', typeof uebrig === 'number' ? geld(uebrig) : 'bereit', {
-    titel: leer ? 'Guthaben aufgebraucht — https://openrouter.ai/settings/credits' : titel,
-    warnung: leer,
-    punkt: true,
+  const bekannt = typeof uebrig === 'number';
+  ziel.append(fussZeile('OpenRouter', bekannt ? geld(uebrig) : 'nicht abrufbar', {
+    // "bereit" stand hier frueher auch dann, wenn der Abruf gescheitert war.
+    // Das las sich wie "alles in Ordnung" und war es nicht.
+    titel: leer
+      ? 'Guthaben aufgebraucht — https://openrouter.ai/settings/credits'
+      : (bekannt ? titel : 'Der Schlüssel ist gesetzt, aber der Kontostand kam nicht zurück — kein Netz, oder der Schlüssel wird abgelehnt.'),
+    warnung: leer || !bekannt,
+    punkt: bekannt,
   }));
+
+  // Sind die Preise nicht frisch, steht das da. Eine Schaetzung aus alten
+  // Zahlen ist brauchbar - sie stillschweigend als aktuell auszugeben,
+  // waere es nicht.
+  const alt = preisStand?.bild;
+  if (alt && !alt.frisch && alt.zeit) {
+    const d = new Date(alt.zeit);
+    ziel.append(fussZeile('Preise', d.toLocaleDateString('de-DE'), {
+      titel: 'Letzter erreichbarer Stand. Die Schätzung rechnet damit weiter; '
+        + 'gemessene Preise aus eigenen Läufen sind davon nicht betroffen.',
+      warnung: true,
+      punkt: false,
+    }));
+  }
 }
 
 /**
@@ -378,6 +398,7 @@ async function los() {
   const start = await api.start();
 
   guthabenStand = start.guthaben;
+  preisStand = start.preisStand || null;
   zeigeAnbieter(start.anbieter, start.schluessel);
   zeigeVerbrauch(start.verbrauch);
   verdrahteStil(start);

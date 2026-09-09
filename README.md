@@ -329,6 +329,7 @@ kynto-studio/
     ├── verbrauch.json         spending and measured model prices
     ├── vorlagen.json          your saved runs
     ├── gelernt.json           limits learned from provider rejections
+    ├── preise.json            last prices seen, so a start without net has them
     ├── stil-block.txt         your style block for images, plain text
     ├── stil-block-video.txt   the same for clips
     ├── regie.txt              what the assistant knows about the craft
