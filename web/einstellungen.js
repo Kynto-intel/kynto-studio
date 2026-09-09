@@ -207,7 +207,87 @@ function zeichneGrenzen(ziel) {
     + 'Die Bremse verhindert den nächsten Lauf, nicht den laufenden.';
   kasten.append(ehrlich);
 
+  // Was bisher ausgegeben wurde. Steht unter den Grenzen, weil beides
+  // dieselbe Frage beantwortet - nur einmal nach vorn und einmal zurueck.
+  const gesch = document.createElement('div');
+  gesch.className = 'kosten-geschichte';
+  gesch.textContent = 'Verbrauch wird geladen …';
+  kasten.append(gesch);
+  zeichneGeschichte(gesch);
+
   ziel.append(kasten);
+}
+
+/** Tabelle je Monat. Laedt nach, damit der Reiter sofort steht. */
+async function zeichneGeschichte(ziel) {
+  let g;
+  try {
+    g = await api.kostenGeschichte(6);
+  } catch {
+    ziel.textContent = 'Verbrauch nicht lesbar.';
+    return;
+  }
+  ziel.replaceChildren();
+  if (!g.proMonat.length) {
+    ziel.textContent = 'Noch nichts verbraucht.';
+    return;
+  }
+
+  const h = document.createElement('h3');
+  h.textContent = 'Bisher ausgegeben';
+  ziel.append(h);
+
+  const tab = document.createElement('table');
+  tab.className = 'kosten-tabelle';
+  const kopf = document.createElement('tr');
+  for (const t of ['Monat', 'Bilder', 'Clips', 'Bild', 'Video', 'Assistent', 'Summe']) {
+    const th = document.createElement('th');
+    th.textContent = t;
+    kopf.append(th);
+  }
+  tab.append(kopf);
+
+  const dollar = (n) => (n ? `${n.toFixed(2)} $` : '—');
+  let offen = 0;
+  for (const m of g.proMonat) {
+    const tr = document.createElement('tr');
+    const felder = [
+      m.monat, String(m.bilder || '—'), String(m.clips || '—'),
+      dollar(m.bildDollar), dollar(m.videoDollar), dollar(m.chatDollar), dollar(m.dollar),
+    ];
+    felder.forEach((wert, i) => {
+      const td = document.createElement('td');
+      td.textContent = wert;
+      if (i >= 3) td.className = 'zahl';
+      tr.append(td);
+    });
+    // Geld, das nur als Tagessumme festgehalten wurde, gehoert in keine
+    // Spalte. Die Zeile wird angezeichnet statt die Zahlen zu schoenen.
+    //
+    // Aber erst ab einem Cent: der September haelt 0,007 $ ohne Aufteilung,
+    // 0,16 % des Monats. Faerbte man auch das ein, waere die ganze Tabelle
+    // orange und die Markierung saegte sich selbst ab. Gezaehlt wird der
+    // Betrag trotzdem - er steht in der Summe darunter.
+    if (m.ohneAufteilung) {
+      offen += m.ohneAufteilung;
+    }
+    if (m.ohneAufteilung >= 0.01) {
+      tr.title = `${m.ohneAufteilung.toFixed(2)} $ davon wurden nur als Tagessumme `
+        + 'festgehalten und lassen sich keiner Spalte zuordnen.';
+      tr.classList.add('unvollstaendig');
+    }
+    tab.append(tr);
+  }
+  ziel.append(tab);
+
+  const fuss = document.createElement('p');
+  fuss.className = 'gr-erklaerung gr-klein';
+  fuss.textContent = `Insgesamt ${g.gesamt.toFixed(2)} $ seit ${g.seit}.`
+    + (offen
+      ? ` Davon ${offen.toFixed(2)} $ ohne Aufteilung — vor dem 2.9.2026 hielt die `
+        + 'App nur eine Tagessumme fest. Die Zeilen sind angezeichnet.'
+      : '');
+  ziel.append(fuss);
 }
 
 /**

@@ -19,6 +19,8 @@ async function ruf(pfad, optionen = {}) {
 export const api = {
   start: () => ruf('/api/start'),
 
+  kostenGeschichte: (monate = 0) => ruf(`/api/kosten-geschichte?monate=${monate}`),
+
   // vorlage: nur, was ueber diese Vorlage erzeugt wurde. Die Zuordnung
   // steht im Sidecar, nicht in einem Index.
   bestand: ({ ordner, art, nurFavoriten, suche, vorlage } = {}) => {

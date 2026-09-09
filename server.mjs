@@ -156,6 +156,11 @@ const routen = {
     };
   },
 
+  /** Verbrauch je Monat und Tag. Liest nur, aendert nichts. */
+  'GET /api/kosten-geschichte': async (_req, url) => kosten.geschichte(
+    Number(url.searchParams.get('monate')) || 0,
+  ),
+
   'GET /api/bestand': async (_req, url) => ({
     ...bibliothek.bestandFuerAnsicht({
       ordner: url.searchParams.get('ordner'),

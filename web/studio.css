@@ -320,13 +320,13 @@ body.zu .ordner-einstellen { display: none; }
 .karte.vorlage .titel:hover { background: none; }
 
 /* Ohne Bild: kein kaputtes Bildsymbol, sondern ein Wort. */
-.vl-ohne-bild { font-size: 11px; color: var(--muted); }
+.vl-ohne-bild { font-size: 11px; color: var(--subtext); }
 .vl-ohne-bild.fehlt { color: #c2542a; }
 
 /* Der ganze Prompt gehoert nicht ins Raster - zwei Zeilen, dann Schluss. */
 .karte.vorlage .vl-motiv {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--subtext);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -572,7 +572,7 @@ body.zu .ordner-einstellen { display: none; }
   line-height: 1.6;
   color: var(--subtext);
 }
-.gr-klein { margin: 14px 0 0; color: var(--muted); }
+.gr-klein { margin: 14px 0 0; color: var(--subtext); }
 
 .gr-zeile {
   border: 1px solid var(--border);
@@ -1977,7 +1977,7 @@ body.zu .verlauf-knopf span { display: none; }
 
 .vl-gemacht-datum {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--subtext);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2080,16 +2080,33 @@ body.zu .verlauf-knopf span { display: none; }
 
 /* Die Zeile mit den aufgehobenen Fassungen. Leiser als der Dateipfad
    darueber - man braucht sie selten, aber dann sofort. */
-.stil-fassungen { color: var(--muted); margin-top: 2px; }
+/* --muted (#3A3B3C) ist ein Rahmen- und Hintergrundton. Als Textfarbe auf
+   dem Panel gemessen 1,55:1 - praktisch unsichtbar. Textgrau ist --subtext
+   mit 4,92:1. Als Rahmen oder Hintergrund bleibt --muted richtig. */
+.stil-fassungen { color: var(--subtext); margin-top: 2px; }
 
 /* Anleitungen unter der Regie. Bewusst ruhig: eine Liste zum Nachsehen,
    kein Bedienfeld - geaendert wird im Editor. */
-.anleitungen { margin-top: 28px; border-top: 1px solid var(--linie); padding-top: 18px; }
+.anleitungen { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 18px; }
 .anleitungen h3 { margin: 0 0 6px; font-size: 15px; }
 .anleitung-liste { margin: 10px 0 6px; padding-left: 18px; line-height: 1.7; }
-.anleitung-liste li { color: var(--muted); }
+.anleitung-liste li { color: var(--subtext); }
 .anleitung-liste b { color: var(--text); font-weight: 600; }
 
 /* Der Beschnitt-Hinweis in der Schaetzung. Warnfarbe, aber kein Alarm -
    es ist eine Tatsache ueber das Bild, kein Fehler. */
 .beschnitt-hinweis { color: var(--accent); }
+
+/* Verbrauch je Monat, unter den Tagesgrenzen. Eine Tabelle zum Nachsehen,
+   kein Bedienfeld - deshalb ruhig und ohne Rahmen um jede Zelle. */
+.kosten-geschichte { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 18px; }
+.kosten-geschichte h3 { margin: 0 0 10px; font-size: 15px; }
+.kosten-tabelle { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kosten-tabelle th {
+  text-align: left; font-weight: 600; color: var(--subtext);
+  padding: 4px 8px 6px 0; border-bottom: 1px solid var(--border);
+}
+.kosten-tabelle th:not(:first-child), .kosten-tabelle td.zahl { text-align: right; }
+.kosten-tabelle td { padding: 6px 8px 6px 0; color: var(--subtext); }
+.kosten-tabelle td:first-child { color: var(--text); }
+.kosten-tabelle tr.unvollstaendig td { color: var(--accent); }
